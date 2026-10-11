@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+coverage/
+*.tsbuildinfo
+
+# env files (never commit real keys)
+.env
+.env.*
+!.env.example
+
+# supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# logs & editors
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# local tool settings
+.claude/

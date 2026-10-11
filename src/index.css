@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/vazirmatn';
+
+/*
+ * Shekargah design tokens.
+ * Every color, radius and shadow used by the UI is defined here so the brand
+ * can be retuned in one place. Components use the semantic names
+ * (bg-surface, text-ink-muted, border-line, bg-brand-600 ...).
+ */
+@theme {
+  --font-sans: 'Vazirmatn Variable', Vazirmatn, Tahoma, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  /* Brand: "hunter orange". 600 is the primary action color (4.6:1 with white). */
+  --color-brand-50: #fff4ed;
+  --color-brand-100: #ffe5d4;
+  --color-brand-200: #ffc8a6;
+  --color-brand-500: #e8621f;
+  --color-brand-600: #cc4a12;
+  --color-brand-700: #b23f0e;
+  --color-brand-800: #8f330d;
+
+  /* Neutrals */
+  --color-canvas: #f5f5f6;
+  --color-surface: #ffffff;
+  --color-sunken: #efeff1;
+  --color-line: #e5e5e9;
+  --color-line-strong: #d2d2d8;
+  --color-ink: #18181b;
+  --color-ink-muted: #565661;
+  --color-ink-faint: #85858f;
+
+  /* Feedback */
+  --color-success-50: #ecfdf3;
+  --color-success-700: #067647;
+  --color-warning-50: #fffaeb;
+  --color-warning-700: #b54708;
+  --color-danger-50: #fef3f2;
+  --color-danger-600: #c4320a;
+  --color-danger-700: #a42a08;
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 3px rgb(24 24 27 / 0.06);
+  --shadow-pop: 0 8px 24px rgb(24 24 27 / 0.12), 0 2px 6px rgb(24 24 27 / 0.06);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Latin fragments (URLs, emails, code) keep their own direction. */
+  code,
+  kbd,
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-brand-100);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
