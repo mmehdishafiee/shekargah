@@ -1,91 +1,86 @@
-# Shekargah · شکارگاه
+<div dir="rtl">
 
-An open-source Persian product discovery platform. Makers submit Iranian startups, websites, apps, open-source projects and developer tools; moderators review them; the community votes and comments.
+# شکارگاه
 
-> **فارسی:** شکارگاه یک پلتفرم متن‌باز برای کشف محصولات تازه‌ی ایرانی است. راهنمای فارسی راه‌اندازی سرویس‌ها در [docs/SETUP-FA.md](docs/SETUP-FA.md) است.
+**شکارگاه** یک پلتفرم متن‌باز و فارسی‌زبان برای کشف و معرفی محصولات تازه است. سازندگان، محصول خود را معرفی می‌کنند؛ مدیران بررسی می‌کنند؛ و جامعه به بهترین‌ها رأی می‌دهد.
 
-- **Frontend:** React 19, Vite, TypeScript (strict), Tailwind CSS 4, React Router 7, TanStack Query
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Row Level Security). No custom server.
-- **Hosting:** Cloudflare Pages (static `dist/`)
-- **Tests:** Vitest + React Testing Library; database security tests run real Postgres via PGlite
+🔗 **سایت زنده:** [shekargah.pages.dev](https://shekargah.pages.dev)
 
-## Features
+## امکانات
 
-- Product feed with popular/newest sorting, search, category filters and pagination
-- Product pages with maker, website, votes and comments
-- Email sign-up, sign-in, sign-out, password recovery, persistent sessions
-- Product submission with logo upload; new products are `pending` until a moderator approves them
-- One vote per user per product, enforced by a database unique constraint
-- Comments (rendered as plain text), reporting of products and comments
-- Profiles with avatar and published products; private view of your own pending/rejected submissions
-- Admin dashboard: approve, reject, unpublish, manage categories, review reports. Every action records the admin and a timestamp.
-- Fully Persian, right-to-left UI with the Vazirmatn font and Persian digits/dates
+- 🏠 **فید محصولات** با مرتب‌سازی محبوب/تازه، جست‌وجو و فیلتر دسته‌بندی
+- 👤 **حساب کاربری** با ثبت‌نام ایمیلی، پروفایل و آواتار
+- 📤 **معرفی محصول** با آپلود لوگو؛ محصولها تا تأیید مدیر در صف بررسی می‌مانند
+- ⬆️ **رأی و نظر** — هر کاربر یک رأی به هر محصول؛ گزارش محتوای نامناسب
+- 🛡️ **پنل مدیریت** برای تأیید، رد و حذف محصولها، مدیریت دسته‌ها و بررسی گزارش‌ها
+- 🌐 **رابط کاملاً فارسی** و راست‌چین با فونت وزیرمتن، اعداد و تاریخ فارسی
+- 🔒 **امنیت سطح دیتابیس** — همهٔ جداول RLS دارند و اقدامات مدیر لاگ می‌شود
 
-## Quick start
+## فناوری‌ها
 
-Requirements: Node.js 22.12+ (24 LTS recommended) and npm.
+| لایه | تکنولوژی |
+| --- | --- |
+| فرانت‌اند | React 19، TypeScript، Vite، Tailwind CSS 4، React Router 7، TanStack Query |
+| بک‌اند | Supabase — PostgreSQL با Row Level Security، Auth، Storage |
+| هاستینگ | Cloudflare Pages (سایت استاتیک) |
+| تست | Vitest + Testing Library + PGlite برای تست امنیتی دیتابیس |
+
+## اجرای محلی
+
+نیازمندی: Node.js 24 و npm.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Without Supabase credentials the app runs in **demo mode**: realistic sample data that lives only in your browser (`localStorage`). Sign in with `admin@demo.shekargah` (any password) to see the admin dashboard, or `sara@demo.shekargah` as a regular user.
+سایت در `http://localhost:5173` باز می‌شود. بدون تنظیم Supabase، برنامه در **حالت نمایشی** با دادهٔ نمونه کار می‌کند.
 
-### Connect Supabase
+ورود آزمایشی (هر رمزی قبول است):
+- `admin@demo.shekargah` — مدیر، برای دیدن پنل مدیریت
+- `sara@demo.shekargah` — کاربر عادی
 
-1. Create a Supabase project and apply the migrations. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#1-supabase).
-2. Copy `.env.example` to `.env.local` and fill in the two **public** values:
+### اتصال به Supabase
 
-   ```bash
-   VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=<publishable or anon key>
-   ```
+1. یک پروژهٔ Supabase بساز و فایلهای `supabase/migrations/` را اجرا کن.
+2. `.env.example` را به `.env.local` کپی کن و دو مقدار عمومی را پر کن:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+3. `npm run dev` را دوباره اجرا کن. بنر «حالت نمایشی» محو می‌شود.
 
-3. Restart `npm run dev`. The demo banner disappears when the app talks to Supabase.
+## اسکریپتها
 
-Never put the `service_role` key or the database password in any `VITE_` variable: everything prefixed with `VITE_` is shipped to the browser.
-
-## Scripts
-
-| Command | What it does |
+| دستور | کار |
 | --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm run build` | Type-check and build the static site into `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | TypeScript only |
-| `npm run lint` | ESLint |
-| `npm test` | All tests (UI, unit, and database security tests) |
-| `npm run test:db` | Only the database/RLS tests (PGlite) |
-| `npm run check` | Everything CI should run |
+| `npm run dev` | اجرای سرور توسعه |
+| `npm run build` | تایپ‌چک و ساخت خروجی استاتیک در `dist/` |
+| `npm run check` | تایپ‌چک + لینت + تست + build |
+| `npm test` | همهٔ تست‌ها (UI، واحد، امنیتی دیتابیس) |
 
-## Project structure
+## ساختار پروژه
 
 ```
-src/
-  auth/           session context, route guards
-  components/     ui primitives, layout, product components, brand
-  data/           ShekargahApi interface, Supabase + demo implementations, query hooks
-  lib/            validation, formatting, Persian text helpers, errors
-  pages/          route screens (admin/ is lazy-loaded)
-  index.css       design tokens (colors, radii, shadows) — change the brand here
+src/                فرانت‌اند: صفحات، کامپوننتها، لایهٔ داده
+  auth/             احراز هویت و محافظت مسیرها
+  data/             رابط ShekargahApi + پیاده‌سازی supabase و demo
+  lib/              اعتبارسنجی، فرمت و ابزارهای فارسی
+  pages/            صفحات اصلی + پنل مدیریت
 supabase/
-  migrations/     version-controlled SQL: schema, RLS, triggers, RPCs, storage
-  tests/          PGlite-based security tests for the migrations
-public/
-  _headers        Cloudflare Pages security headers
-docs/             deployment, security, Persian setup guide
+  migrations/       اسکیما، RLS، تریگرها و RPCها
+  tests/            تست امنیتی دیتابیس با PGlite
+public/             هدرهای امنیتی، آیکون و robots.txt
+docs/               مستندات راه‌اندازی و امنیت
 ```
 
-The UI talks to a single `ShekargahApi` interface (`src/data/types.ts`). `supabaseApi.ts` is the production implementation; `demoApi.ts` mirrors the same rules in memory. Moving off Supabase later means writing one more implementation of that interface.
+## مستندات
 
-## Documentation
+- 📘 [راهنمای فارسی آنلاین کردن پروژه](docs/GO-LIVE-FA.md) — گام‌به‌گام با مقادیر این پروژه
+- 📗 [راهنمای فارسی راه‌اندازی](docs/SETUP-FA.md)
+- 📕 [مستندات دیپلوی](docs/DEPLOYMENT.md) — Supabase، Cloudflare، دامنهٔ اختصاصی، بکاپ
+- 📙 [مدل امنیتی](docs/SECURITY.md) — RLS، سطح دسترسی و نحوهٔ تست آن
 
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Supabase, admin bootstrap, Cloudflare Pages, custom domain, free-tier limits, backups
-- [docs/SECURITY.md](docs/SECURITY.md): the authorization model and how it is tested
-- [docs/SETUP-FA.md](docs/SETUP-FA.md): راهنمای فارسی راه‌اندازی
-- [CONTRIBUTING.md](CONTRIBUTING.md)
+## مجوز
 
-## License
+هنوز مجوزی انتخاب نشده است. تا وقتی مجوز اضافه نشود، کد به صورت «همهٔ حقوق محفوظ» در نظر گرفته می‌شود.
 
-Not chosen yet. Until a license is added, the code is "all rights reserved" by default even though the repository is public.
+</div>
