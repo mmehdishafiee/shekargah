@@ -8,8 +8,11 @@
 | --- | --- |
 | ریپوی گیتهاب | `https://github.com/mmehdishafiee/shekargah` |
 | ایمیل مدیر | `mmhdishafiee@gmail.com` |
-| Project URL سوپابیس | `https://<project-ref>.supabase.co` (بعد از ساخت پروژه پر شود) |
-| نشانی سایت (Cloudflare) | `https://<اسم-پروژه>.pages.dev` (بعد از دیپلوی پر شود) |
+| Project URL سوپابیس | `https://lxtxjgffxtgqtdrudynd.supabase.co` |
+| نشانی سایت (دامنهٔ اصلی) | `https://shekargah.mmehdi.ir` |
+| نشانی جایگزین (Cloudflare Pages) | `https://shekargah.pages.dev` |
+
+> **نکتهٔ تحریم/فیلتر:** `pages.dev` و `supabase.co` در ایران تحریم‌اند. برای دسترسی مستقیم، سایت روی دامنهٔ خودت `shekargah.mmehdi.ir` قرار گرفت. در تنظیمات Auth، Site URL را همان دامنه بگذار. |
 
 ## آنچه لازم داری
 
@@ -95,6 +98,18 @@
 - **پروژهٔ Free بعد از حدود یک هفته بیفعالیتی pause میشود.** سایت در آن حالت خطا میدهد. برای روشن کردن دوباره، از داشبورد Supabase دکمهٔ restore را بزن.
 - **ایمیل داخلی Supabase فقط برای تست است** و تعداد کمی ایمیل در ساعت میفرستد. قبل از عمومی شدن، SMTP اختصاصی تنظیم کن (Authentication → SMTP Settings).
 - **دامنهٔ اختصاصی:** در Cloudflare به Custom domains برو و دامنه را اضافه کن. سپس Site URL و Redirect URLs را در Supabase عوض کن. اگر Supabase را هم روی دامنهٔ دیگری بردی، `public/_headers` را هم بهروز کن.
+
+### دربارهٔ دامنهٔ `mmehdi.ir`
+
+سایت روی `shekargah.mmehdi.ir` (ساب‌دامین دامنهٔ خودت) کار می‌کند چون `pages.dev` و `supabase.co` در ایران تحریم/فیلترند. برای راه‌اندازی آن:
+
+1. در Cloudflare به **DNS** برو و رکورد `CNAME` برای `shekargah` به `shekargah.pages.dev` بساز (proxied = فعال).
+2. در تنظیمات پروژه Pages → **Custom domains** → **Set up a custom domain** → `shekargah.mmehdi.ir` را بزن.
+3. در Supabase → **Authentication → URL Configuration**:
+   - Site URL: `https://shekargah.mmehdi.ir`
+   - Redirect URLs: `https://shekargah.mmehdi.ir/**`، `https://shekargah.pages.dev/**`، `https://*.shekargah.pages.dev/**`
+
+اگر روزی خواستی دامنهٔ مستقل (مثل `shekargah.ir`) بگیری، رکورد CNAME را به همان دامنه تغییر بده و Custom Domain را عوض کن.
 - **بکاپ:** اسکیمای دیتابیس از فایلهای migration قابل بازسازی است، ولی دادهها و فایلهای آپلودشده جدا باید بکاپ شوند (جزئیات در DEPLOYMENT.md).
 
 ## خطاهای رایج
