@@ -27,3 +27,4 @@ Thumbs.db
 
 # local tool settings
 .claude/
+.zcode/
