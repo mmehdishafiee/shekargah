@@ -15,6 +15,8 @@ export type ApiErrorCode =
   | 'invalid_transition'
   | 'note_required'
   | 'invalid_input'
+  | 'too_many_tags'
+  | 'unknown_tag'
   | 'upload_failed'
   | 'network'
   | 'unknown'
@@ -36,6 +38,8 @@ const MESSAGES: Record<ApiErrorCode, string> = {
   invalid_transition: 'وضعیت این محصول تغییر کرده است. صفحه را تازه کن.',
   note_required: 'دلیل را بنویس تا برای سازنده نمایش داده شود.',
   invalid_input: 'اطلاعات واردشده معتبر نیست. فیلدها را بررسی کن.',
+  too_many_tags: 'حداکثر پنج برچسب برای هر محصول مجاز است.',
+  unknown_tag: 'یکی از برچسب‌های انتخاب‌شده معتبر نیست.',
   upload_failed: 'بارگذاری تصویر انجام نشد. نوع و حجم فایل را بررسی کن و دوباره امتحان کن.',
   network: 'ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کن و دوباره امتحان کن.',
   unknown: 'خطای غیرمنتظره‌ای رخ داد. دوباره امتحان کن.',

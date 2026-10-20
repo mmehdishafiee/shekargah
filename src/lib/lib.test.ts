@@ -40,6 +40,7 @@ describe('validation', () => {
     description: 'یک برنامه‌ی یادداشت که بدون اینترنت هم کار می‌کند و همگام می‌شود.',
     websiteUrl: 'https://example.com',
     categoryId: 'c-01',
+    tags: [] as string[],
     logo: null,
   }
 

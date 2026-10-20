@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, ImagePlus, X } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { useCategories } from '@/data/queries'
+import { useCategories, useTags } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { errorMessage } from '@/lib/errors'
 import { formatBytes } from '@/lib/format'
@@ -16,7 +16,7 @@ import { Field, Select, TextArea, TextInput } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Feedback'
 import { cardClass } from '@/components/ui/styles'
 
-const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', logo: null }
+const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', tags: [], logo: null }
 
 export function SubmitPage() {
   useDocumentMeta('معرفی محصول')
@@ -32,6 +32,7 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
   const api = useApi()
   const queryClient = useQueryClient()
   const categories = useCategories()
+  const tags = useTags()
   const [values, setValues] = useState<ProductFormValues>(EMPTY)
   const [errors, setErrors] = useState<FieldErrors<keyof ProductFormValues>>({})
   const preview = useObjectUrl(values.logo)
@@ -122,6 +123,42 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
             )}
           </Field>
         </div>
+
+        <Field
+          label="برچسب‌ها"
+          optional
+          hint="تا پنج برچسب مرتبط انتخاب کن تا محصول بهتر پیدا شود."
+          error={errors.tags}
+        >
+          {() => (
+            <div role="group" aria-label="برچسب‌ها" className="flex flex-wrap gap-2">
+              {tags.isPending ? (
+                <p className="text-sm text-ink-muted">در حال بارگذاری برچسب‌ها…</p>
+              ) : (
+                tags.data?.map((tag) => {
+                  const selected = values.tags.includes(tag.slug)
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        set('tags', selected ? values.tags.filter((slug) => slug !== tag.slug) : [...values.tags, tag.slug])
+                      }
+                      className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                        selected
+                          ? 'border-ink bg-ink text-white'
+                          : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
+                      }`}
+                    >
+                      #{tag.name}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          )}
+        </Field>
 
         <Field
           label="لوگو"

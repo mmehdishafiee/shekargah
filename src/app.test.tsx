@@ -85,6 +85,14 @@ describe('product page', () => {
     renderApp('/products/not-a-product')
     expect(await screen.findByText('این محصول پیدا نشد')).toBeInTheDocument()
   })
+
+  it('shows tags, save and share controls on a product page', async () => {
+    renderApp(`/products/${encodeURIComponent('جلالی‌کیت')}`)
+    expect(await screen.findByRole('heading', { level: 1, name: 'جلالی‌کیت' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: '#متن‌باز' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ذخیره‌ی جلالی‌کیت' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'اشتراک‌گذاری جلالی‌کیت' })).toBeInTheDocument()
+  })
 })
 
 describe('submissions', () => {
@@ -107,6 +115,7 @@ describe('submissions', () => {
     )
     await user.type(screen.getByRole('textbox', { name: 'نشانی وب‌سایت' }), 'https://example.com/team')
     await user.selectOptions(screen.getByRole('combobox', { name: 'دسته‌بندی' }), 'بهره‌وری')
+    await user.click(screen.getByRole('button', { name: '#بهره‌وری' }))
     await user.click(screen.getByRole('button', { name: 'ثبت برای بررسی' }))
 
     expect(await screen.findByRole('heading', { name: '«نوت‌بوک تیمی» ثبت شد' })).toBeInTheDocument()

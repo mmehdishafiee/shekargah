@@ -41,6 +41,9 @@ export function VoteButton({ productId, productName, slug, votesCount, voted, va
         queryClient.invalidateQueries({ queryKey: ['feed'] }),
         queryClient.invalidateQueries({ queryKey: ['product', slug] }),
         queryClient.invalidateQueries({ queryKey: ['maker-products'] }),
+        queryClient.invalidateQueries({ queryKey: ['leaderboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['trending'] }),
+        queryClient.invalidateQueries({ queryKey: ['daily-products'] }),
       ])
       setOptimistic(null)
     },

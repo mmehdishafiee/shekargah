@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { CalendarDays, ExternalLink, Flag, Globe, PackageX, Tag } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
-import { useMyVotes, useProduct } from '@/data/queries'
+import { useApi } from '@/data/api'
+import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
+import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
 import { formatDate } from '@/lib/format'
 import { profilePath } from '@/lib/paths'
@@ -11,6 +13,10 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { CommentSection } from '@/components/product/CommentSection'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { ReportDialog } from '@/components/product/ReportDialog'
+import { SaveButton } from '@/components/product/SaveButton'
+import { ShareButton } from '@/components/product/ShareButton'
+import { TagChips } from '@/components/product/TagChips'
+import { ViewCount } from '@/components/product/ViewCount'
 import { VoteButton } from '@/components/product/VoteButton'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -41,11 +47,18 @@ function ProductNotFound() {
 
 function ProductDetails({ product }: { product: Product }) {
   const { session } = useAuth()
+  const api = useApi()
   const votes = useMyVotes([product.id])
+  const saved = useMySavedIds([product.id])
   const [reporting, setReporting] = useState(false)
   const isPublished = product.status === 'published'
   const isMaker = session?.userId === product.maker.id
   useDocumentMeta(product.name, product.tagline)
+
+  useEffect(() => {
+    if (!isPublished) return
+    api.recordProductView(product.id, viewerKey()).catch(() => {})
+  }, [api, product.id, isPublished])
 
   return (
     <div className="gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]">
@@ -70,8 +83,12 @@ function ProductDetails({ product }: { product: Product }) {
         <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} size={80} />
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-extrabold leading-tight sm:text-[28px]">{product.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+              <ViewCount count={product.viewsCount} />
+            </div>
+            <h1 className="mt-1 text-2xl font-extrabold leading-tight sm:text-[28px]">{product.name}</h1>
             <p className="mt-1.5 text-base text-ink-muted sm:text-lg">{product.tagline}</p>
+            {product.tags.length > 0 && <div className="mt-3"><TagChips tags={product.tags} /></div>}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a
                 href={product.websiteUrl}
@@ -83,14 +100,23 @@ function ProductDetails({ product }: { product: Product }) {
                 رفتن به وب‌سایت
               </a>
               {isPublished && (
-                <VoteButton
-                  variant="wide"
-                  productId={product.id}
-                  productName={product.name}
-                  slug={product.slug}
-                  votesCount={product.votesCount}
-                  voted={votes.data?.has(product.id) ?? false}
-                />
+                <>
+                  <VoteButton
+                    variant="wide"
+                    productId={product.id}
+                    productName={product.name}
+                    slug={product.slug}
+                    votesCount={product.votesCount}
+                    voted={votes.data?.has(product.id) ?? false}
+                  />
+                  <SaveButton
+                    variant="wide"
+                    productId={product.id}
+                    productName={product.name}
+                    saved={saved.data?.has(product.id) ?? false}
+                  />
+                  <ShareButton slug={product.slug} name={product.name} tagline={product.tagline} />
+                </>
               )}
             </div>
           </div>

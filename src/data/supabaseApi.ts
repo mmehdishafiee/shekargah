@@ -10,9 +10,12 @@ import {
   type ProductSummary,
   type Profile,
   type ProfileSummary,
+  type RankedProduct,
   type Report,
   type Session,
   type ShekargahApi,
+  type Tag,
+  type TagRef,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -49,6 +52,7 @@ interface ProductRow {
   status: ProductStatus
   votes_count: number
   comments_count: number
+  views_count: number
   published_at: string | null
   created_at: string
   moderation_note: string | null
@@ -56,6 +60,7 @@ interface ProductRow {
   category: { id: string; slug: string; name: string } | null
   maker: ProfileRow
   moderator: { display_name: string } | null
+  product_tags: { tags: { slug: string; name: string } | null }[]
 }
 
 interface FeedRow {
@@ -66,11 +71,24 @@ interface FeedRow {
   logo_path: string | null
   votes_count: number
   comments_count: number
+  views_count: number
   published_at: string | null
   category_id: string | null
   category_slug: string | null
   category_name: string | null
+  tag_slugs: string[] | null
+  tag_names: string[] | null
   total_count: number
+}
+
+interface RankedRow extends FeedRow {
+  rank: number
+  score: number | null
+}
+
+interface SavedRow {
+  product_id: string
+  products: ProductRow | null
 }
 
 interface CommentRow {
@@ -96,10 +114,11 @@ interface ReportRow {
 const PROFILE_SUMMARY = 'id, username, display_name, avatar_path'
 const PROFILE_FULL = `${PROFILE_SUMMARY}, bio, role, created_at`
 const PRODUCT_SELECT = `id, slug, name, tagline, description, website_url, logo_path, status, votes_count,
-  comments_count, published_at, created_at, moderation_note, moderated_at,
+  comments_count, views_count, published_at, created_at, moderation_note, moderated_at,
   category:categories(id, slug, name),
   maker:profiles!products_maker_id_fkey(${PROFILE_SUMMARY}),
-  moderator:profiles!products_moderated_by_fkey(display_name)`
+  moderator:profiles!products_moderated_by_fkey(display_name),
+  product_tags:product_tags(tags(slug, name))`
 const COMMENT_SELECT = `id, product_id, body, created_at, author:profiles!comments_author_id_fkey(${PROFILE_SUMMARY})`
 const REPORT_SELECT = `id, reason, details, status, created_at, resolved_at,
   reporter:profiles!reports_reporter_id_fkey(${PROFILE_SUMMARY}),
@@ -108,11 +127,33 @@ const REPORT_SELECT = `id, reason, details, status, created_at, resolved_at,
 
 const EXTENSIONS: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
 
+const toTagRefs = (slugs: string[] | null | undefined, names: string[] | null | undefined): TagRef[] =>
+  (slugs ?? []).map((slug, index) => ({ slug, name: names?.[index] ?? slug }))
+
+const toRanked = (row: RankedRow, publicUrl: (bucket: string, path: string | null) => string | null): RankedProduct => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  tagline: row.tagline,
+  logoUrl: publicUrl('product-logos', row.logo_path),
+  votesCount: row.votes_count,
+  commentsCount: row.comments_count,
+  viewsCount: row.views_count,
+  publishedAt: row.published_at,
+  category: row.category_id ? { id: row.category_id, slug: row.category_slug!, name: row.category_name! } : null,
+  tags: toTagRefs(row.tag_slugs, row.tag_names),
+  rank: row.rank,
+  score: row.score,
+})
+
 // ---------------------------------------------------------------------------
 // Error mapping
 // ---------------------------------------------------------------------------
 
 const MESSAGE_CODES: [RegExp, ApiErrorCode][] = [
+  [/too_many_tags/, 'too_many_tags'],
+  [/unknown_tag/, 'unknown_tag'],
+  [/invalid_viewer_key/, 'invalid_input'],
   [/too_many_pending_submissions/, 'too_many_pending'],
   [/rate_limited/, 'rate_limited'],
   [/inactive_category/, 'inactive_category'],
@@ -198,24 +239,29 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     sortOrder: row.sort_order,
     isActive: row.is_active,
   })
-  const toProduct = (row: ProductRow): Product => ({
+  const toProductSummary = (row: ProductRow): ProductSummary => ({
     id: row.id,
     slug: row.slug,
     name: row.name,
     tagline: row.tagline,
-    description: row.description,
-    websiteUrl: row.website_url,
     logoUrl: publicUrl('product-logos', row.logo_path),
-    status: row.status,
     votesCount: row.votes_count,
     commentsCount: row.comments_count,
+    viewsCount: row.views_count,
     publishedAt: row.published_at,
-    createdAt: row.created_at,
     category: row.category,
+    tags: (row.product_tags ?? []).flatMap((item) => (item.tags ? [{ slug: item.tags.slug, name: item.tags.name }] : [])),
+  })
+  const toProduct = (row: ProductRow): Product => ({
+    ...toProductSummary(row),
+    description: row.description,
+    websiteUrl: row.website_url,
+    status: row.status,
     maker: toSummary(row.maker),
     moderationNote: row.moderation_note,
     moderatedAt: row.moderated_at,
     moderatorName: row.moderator?.display_name ?? null,
+    createdAt: row.created_at,
   })
   const toComment = (row: CommentRow): Comment => ({
     id: row.id,
@@ -316,6 +362,11 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       return row ? toProfile(row) : null
     },
 
+    async listTags() {
+      const rows = check(await supabase.from('tags').select('id, slug, name').order('slug').returns<Tag[]>())
+      return rows.map(({ id, slug, name }) => ({ id, slug, name }))
+    },
+
     async updateProfile(userId, input) {
       const existing = check(
         await supabase.from('profiles').select('avatar_path').eq('id', userId).single<{ avatar_path: string | null }>(),
@@ -350,7 +401,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       return rows.map(toCategory)
     },
 
-    async listProducts({ search, category, sort, page }) {
+    async listProducts({ search, category, tags, sort, page }) {
       const rows = check(
         await supabase.rpc('list_products', {
           p_search: search?.trim() ? normalizeFa(search.trim()) : null,
@@ -358,6 +409,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
           p_sort: sort,
           p_limit: PAGE_SIZE,
           p_offset: page * PAGE_SIZE,
+          p_tags: tags?.length ? tags : null,
         }),
       ) as FeedRow[]
       const total = Number(rows[0]?.total_count ?? 0)
@@ -369,8 +421,10 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         logoUrl: publicUrl('product-logos', row.logo_path),
         votesCount: row.votes_count,
         commentsCount: row.comments_count,
+        viewsCount: row.views_count,
         publishedAt: row.published_at,
         category: row.category_id ? { id: row.category_id, slug: row.category_slug!, name: row.category_name! } : null,
+        tags: toTagRefs(row.tag_slugs, row.tag_names),
       }))
       return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
     },
@@ -411,7 +465,18 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         await removeFile('product-logos', logoPath)
         throw mapPostgrestError(error)
       }
-      return toProduct(data)
+      if (input.tags.length > 0) {
+        try {
+          check(await supabase.rpc('set_product_tags', { p_product_id: data.id, p_slugs: input.tags }))
+        } catch (caught) {
+          await supabase.from('products').delete().eq('id', data.id)
+          await removeFile('product-logos', logoPath)
+          throw caught
+        }
+      }
+      return (await maybe(await supabase.from('products').select(PRODUCT_SELECT).eq('id', data.id).maybeSingle<ProductRow>()))
+        ? toProduct(check(await supabase.from('products').select(PRODUCT_SELECT).eq('id', data.id).single<ProductRow>()))
+        : toProduct(data)
     },
 
     async deleteProduct(productId) {
@@ -421,6 +486,88 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       if (rows.length === 0) throw new ApiError('not_authorized')
       await removeFile('product-logos', rows[0]!.logo_path)
     },
+
+    async setProductTags(productId, slugs) {
+      check(await supabase.rpc('set_product_tags', { p_product_id: productId, p_slugs: slugs }))
+    },
+
+    async listDailyProducts({ date, page }) {
+      const rows = check(
+        await supabase.rpc('list_daily_products', {
+          p_date: date ?? null,
+          p_limit: PAGE_SIZE,
+          p_offset: page * PAGE_SIZE,
+        }),
+      ) as RankedRow[]
+      const total = Number(rows[0]?.total_count ?? 0)
+      const items = rows.map((row) => toRanked(row, publicUrl))
+      return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
+    },
+
+    async listLeaderboard({ period, page }) {
+      const rows = check(
+        await supabase.rpc('list_leaderboard', {
+          p_period: period,
+          p_limit: PAGE_SIZE,
+          p_offset: page * PAGE_SIZE,
+        }),
+      ) as RankedRow[]
+      const total = Number(rows[0]?.total_count ?? 0)
+      const items = rows.map((row) => toRanked(row, publicUrl))
+      return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
+    },
+
+    async listTrending(page) {
+      const rows = check(
+        await supabase.rpc('list_trending', { p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }),
+      ) as RankedRow[]
+      const total = Number(rows[0]?.total_count ?? 0)
+      const items = rows.map((row) => toRanked(row, publicUrl))
+      return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
+    },
+
+    async recordProductView(productId, viewerKey) {
+      check(await supabase.rpc('record_product_view', { p_product_id: productId, p_viewer_key: viewerKey }))
+    },
+
+    async listMySavedProductIds(productIds) {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session || productIds.length === 0) return []
+      const rows = check(
+        await supabase.from('saved_products').select('product_id').in('product_id', productIds).returns<{ product_id: string }[]>(),
+      )
+      return rows.map((row) => row.product_id)
+    },
+
+    async listMySavedProducts(page) {
+      await currentUserId()
+      const rows = check(
+        await supabase
+          .from('saved_products')
+          .select(`product_id, products:products(${PRODUCT_SELECT})`)
+          .order('created_at', { ascending: false })
+          .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+          .returns<SavedRow[]>(),
+      )
+      const items = rows.flatMap((row) => (row.products ? [toProductSummary(row.products)] : []))
+      return { items, total: page * PAGE_SIZE + items.length, hasMore: items.length === PAGE_SIZE }
+    },
+
+    async saveProduct(productId) {
+      await currentUserId()
+      const { error } = await supabase.from('saved_products').insert({ product_id: productId })
+      if (error) throw mapPostgrestError(error)
+    },
+
+    async unsaveProduct(productId) {
+      const userId = await currentUserId()
+      const rows = check(
+        await supabase.from('saved_products').delete().eq('product_id', productId).eq('user_id', userId).select('id'),
+      )
+      if (rows.length === 0) throw new ApiError('not_found')
+    },
+
+
 
     async listMyVotes(productIds) {
       const { data } = await supabase.auth.getSession()

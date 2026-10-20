@@ -381,6 +381,119 @@ describe('feed listing', () => {
   })
 })
 
+describe('engagement: tags, saves, views and rankings', () => {
+  it('seeds public tags and lets anon read product tags but not write them', async () => {
+    const { rows: tags } = await as(db, ANON, (tx) => tx.query<Row>(`select slug, name from public.tags order by slug`))
+    expect(tags.length).toBeGreaterThanOrEqual(20)
+    expect(tags.map((t) => t.slug)).toContain('open-source')
+
+    const { rows: productTags } = await as(db, ANON, (tx) => tx.query<Row>(`select * from public.product_tags`))
+    expect(productTags).toBeDefined()
+
+    expect(
+      await errorOf(as(db, alice, (tx) => tx.query(`insert into public.tags (slug, name) values ('hack', 'هک')`))),
+    ).toMatch(/row-level security|permission denied/)
+  })
+
+  it('lets makers tag their own pending products only through the RPC', async () => {
+    const maker = await createUser(db, 'tagger@shekargah.test', 'برچسب‌ساز')
+    const product = await submit(maker, 'محصول برچسب‌دار')
+    await as(db, maker, (tx) => tx.query(`select public.set_product_tags($1, $2)`, [product.id, ['open-source', 'persian']]))
+    const { rows } = await db.query<Row>(
+      `select t.slug from public.product_tags pt join public.tags t on t.id = pt.tag_id where pt.product_id = $1 order by t.slug`,
+      [product.id],
+    )
+    expect(rows.map((r) => r.slug)).toEqual(['open-source', 'persian'])
+  })
+
+  it('blocks tag edits on other users products and caps the count', async () => {
+    const maker = await createUser(db, 'tagger2@shekargah.test', 'برچسب‌ساز دو')
+    const product = await submit(maker, 'برچسب محدود')
+    expect(await errorOf(as(db, bob, (tx) => tx.query(`select public.set_product_tags($1, $2)`, [product.id, ['ai']])))).toMatch(
+      /not_authorized/,
+    )
+    expect(
+      await errorOf(
+        as(db, maker, (tx) => tx.query(`select public.set_product_tags($1, $2)`, [product.id, ['a', 'b', 'c', 'd', 'e', 'f']])),
+      ),
+    ).toMatch(/too_many_tags/)
+  })
+
+  it('lets users save published products privately and only once', async () => {
+    const maker = await createUser(db, 'saver-maker@shekargah.test', 'سازنده ذخیره')
+    const product = await publish('محصول ذخیره‌شده', maker)
+    await as(db, bob, (tx) => tx.query(`insert into public.saved_products (product_id) values ($1)`, [product.id]))
+    expect(
+      await errorOf(as(db, bob, (tx) => tx.query(`insert into public.saved_products (product_id) values ($1)`, [product.id]))),
+    ).toMatch(/saved_products_unique|duplicate key/)
+
+    const seenByAlice = await as(db, alice, (tx) =>
+      tx.query<Row>(`select 1 from public.saved_products where product_id = $1`, [product.id]),
+    )
+    expect(seenByAlice.affectedRows ?? seenByAlice.rows.length).toBe(0)
+
+    const pending = await submit(maker, 'ذخیره پنهان')
+    expect(
+      await errorOf(as(db, alice, (tx) => tx.query(`insert into public.saved_products (product_id) values ($1)`, [pending.id]))),
+    ).toMatch(/row-level security/)
+  })
+
+  it('deduplicates product views per viewer for twenty four hours', async () => {
+    const maker = await createUser(db, 'views@shekargah.test', 'بیننده')
+    const product = await publish('محصول بازدید', maker)
+    const call = (actor: Actor, key: string) =>
+      as(db, actor, (tx) => tx.query(`select public.record_product_view($1, $2)`, [product.id, key]))
+
+    await call(ANON, 'viewer-1')
+    await call(ANON, 'viewer-1')
+    await call(bob, 'viewer-2')
+
+    const { rows } = await db.query<{ views_count: number }>(`select views_count from public.products where id = $1`, [product.id])
+    expect(rows[0]!.views_count).toBe(2)
+
+    const pending = await submit(maker, 'بازدید پنهان')
+    expect(
+      await errorOf(as(db, ANON, (tx) => tx.query(`select public.record_product_view($1, $2)`, [pending.id, 'x']))),
+    ).toMatch(/product_not_found/)
+  })
+
+  it('ranks leaderboard by window votes and daily by published date', async () => {
+    const maker = await createUser(db, 'leader@shekargah.test', 'سازنده برتر')
+    const first = await publish('ردیف برتر', maker)
+    const second = await publish('ردیف دوم', maker)
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [first.id]))
+    await as(db, bob, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [first.id]))
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [second.id]))
+
+    const board = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select id, score, rank from public.list_leaderboard('daily', 10, 0)`)).rows,
+    )
+    expect(board[0]).toMatchObject({ id: first.id, rank: 1 })
+    expect(Number(board[0]!.score)).toBe(2)
+
+    const today = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select id from public.list_daily_products(null, 50, 0)`)).rows,
+    )
+    expect(today.some((row) => row.id === first.id)).toBe(true)
+  })
+
+  it('orders trending by recent engagement and hides private votes', async () => {
+    const maker = await createUser(db, 'trend@shekargah.test', 'سازنده ترند')
+    const quiet = await publish('ساکت', maker)
+    const hot = await publish('داغ', maker)
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [quiet.id]))
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [hot.id]))
+    await as(db, bob, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [hot.id]))
+    await as(db, alice, (tx) => tx.query(`insert into public.comments (product_id, body) values ($1, 'کامنت')`, [hot.id]))
+
+    const rows = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select id, score, rank from public.list_trending(10, 0)`)).rows,
+    )
+    expect(rows[0]).toMatchObject({ id: hot.id, rank: 1 })
+    expect(Number(rows[0]!.score)).toBeGreaterThanOrEqual(7)
+  })
+})
+
 describe('storage', () => {
   const upload = (actor: Actor, bucket: string, name: string) =>
     as(db, actor, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ($1, $2)`, [bucket, name]))

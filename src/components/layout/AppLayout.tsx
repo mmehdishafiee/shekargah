@@ -38,6 +38,15 @@ function Footer() {
           <Link to="/about" className="hover:text-ink">
             درباره و قوانین
           </Link>
+          <Link to="/today" className="hover:text-ink">
+            امروز
+          </Link>
+          <Link to="/trending" className="hover:text-ink">
+            داغ‌ترین‌ها
+          </Link>
+          <Link to="/leaderboard" className="hover:text-ink">
+            جدول رتبه‌بندی
+          </Link>
           <Link to="/submit" className="hover:text-ink">
             معرفی محصول
           </Link>

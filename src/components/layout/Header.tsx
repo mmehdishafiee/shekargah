@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { LogOut, Plus, Search, Settings, ShieldCheck, User } from 'lucide-react'
+import { Bookmark, LogOut, Plus, Search, Settings, ShieldCheck, User } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { profilePath } from '@/lib/paths'
@@ -80,6 +80,10 @@ function UserMenu() {
               <User size={16} strokeWidth={1.75} aria-hidden />
               پروفایل و محصولات من
             </Link>
+            <Link to="/saved" onClick={close} className={menuItemClass}>
+              <Bookmark size={16} strokeWidth={1.75} aria-hidden />
+              ذخیره‌شده‌ها
+            </Link>
             <Link to="/settings" onClick={close} className={menuItemClass}>
               <Settings size={16} strokeWidth={1.75} aria-hidden />
               تنظیمات حساب
@@ -128,8 +132,17 @@ export function Header() {
           <NavLink to="/" end className={navClass}>
             محصولات
           </NavLink>
+          <NavLink to="/today" className={navClass}>
+            امروز
+          </NavLink>
+          <NavLink to="/trending" className={navClass}>
+            داغ‌ترین‌ها
+          </NavLink>
+          <NavLink to="/leaderboard" className={navClass}>
+            جدول رتبه‌بندی
+          </NavLink>
           <NavLink to="/about" className={navClass}>
-            درباره و قوانین
+            درباره
           </NavLink>
         </nav>
         <div className="ms-auto flex items-center gap-2">

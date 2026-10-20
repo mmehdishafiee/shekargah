@@ -36,6 +36,8 @@
 1. `supabase/migrations/20261011000001_initial_schema.sql`
 2. `supabase/migrations/20261011000002_storage.sql`
 3. `supabase/migrations/20261011000003_default_categories.sql`
+4. `supabase/migrations/20261019000004_hunter_entries.sql`
+5. `supabase/migrations/20261020000005_engagement.sql`
 
 ## ۳. گرفتن کلیدهای عمومی
 

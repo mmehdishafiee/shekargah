@@ -4,6 +4,8 @@ import type { ProductSummary } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
 import { ProductLogo } from './ProductLogo'
+import { TagChips } from './TagChips'
+import { ViewCount } from './ViewCount'
 import { VoteButton } from './VoteButton'
 
 interface ProductRowProps {
@@ -40,12 +42,14 @@ export function ProductRow({ product, voted, rank }: ProductRowProps) {
               {product.category.name}
             </Link>
           )}
+          <TagChips tags={product.tags} />
           <span className="inline-flex items-center gap-1" aria-label={`${formatNumber(product.commentsCount)} نظر`}>
             <MessageCircle size={14} strokeWidth={1.75} aria-hidden />
             <span className="tabular-nums" aria-hidden>
               {formatNumber(product.commentsCount)}
             </span>
           </span>
+          <ViewCount count={product.viewsCount} />
         </div>
       </div>
       <VoteButton

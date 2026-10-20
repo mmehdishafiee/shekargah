@@ -1,4 +1,4 @@
-import type { Category, ProductStatus, ReportReason, ReportStatus, Role } from './types'
+import type { Category, ProductStatus, ReportReason, ReportStatus, Role, Tag } from './types'
 
 /**
  * Sample data for demo mode. Every product, person and address here is
@@ -33,12 +33,33 @@ export interface DemoProduct {
   publishedAt: string | null
   votesCount: number
   commentsCount: number
+  viewsCount: number
   createdAt: string
 }
 
 export interface DemoVote {
   userId: string
   productId: string
+  createdAt: string
+}
+
+export interface DemoSave {
+  userId: string
+  productId: string
+  createdAt: string
+}
+
+export interface DemoProductView {
+  productId: string
+  viewerKey: string
+  createdAt: string
+}
+
+export type DemoTag = Tag
+
+export interface DemoProductTag {
+  productId: string
+  tagId: string
 }
 
 export interface DemoComment {
@@ -63,13 +84,17 @@ export interface DemoReport {
 }
 
 export interface DemoState {
-  version: 1
+  version: 2
   users: DemoUser[]
   categories: Category[]
+  tags: Tag[]
+  productTags: DemoProductTag[]
   products: DemoProduct[]
   votes: DemoVote[]
   comments: DemoComment[]
   reports: DemoReport[]
+  saved: DemoSave[]
+  views: DemoProductView[]
   sessionUserId: string | null
 }
 
@@ -304,6 +329,33 @@ const CATEGORY_IDS: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(([slug], index) => [slug, `c-${String(index + 1).padStart(2, '0')}`]),
 )
 
+const TAGS: [string, string][] = [
+  ['open-source','متن‌باز'],
+  ['ai','هوش مصنوعی'],
+  ['persian','فارسی'],
+  ['mobile','موبایل'],
+  ['web','وب'],
+  ['api','API'],
+  ['productivity','بهره‌وری'],
+  ['education','آموزش'],
+  ['fintech','مالی'],
+  ['design','طراحی'],
+  ['games','بازی'],
+  ['health','سلامت'],
+  ['ecommerce','فروشگاهی'],
+  ['security','امنیت'],
+  ['data','داده'],
+  ['cloud','ابری'],
+  ['devtools','ابزار توسعه‌دهندگان'],
+  ['startup','استارتاپ'],
+  ['utility','ابزارک'],
+  ['content','محتوا'],
+  ['automation','اتوماسیون'],
+  ['privacy','حریم خصوصی'],
+]
+
+const TAG_IDS: Record<string, string> = Object.fromEntries(TAGS.map(([slug], index) => [slug, `t-${String(index + 1).padStart(2, '0')}`]))
+
 export function createDemoState(now: Date = new Date()): DemoState {
   const ago = (hours: number) => new Date(now.getTime() - hours * 3600 * 1000).toISOString()
 
@@ -348,6 +400,7 @@ export function createDemoState(now: Date = new Date()): DemoState {
         publishedAt: published,
         votesCount: votes,
         commentsCount: 0,
+        viewsCount: Math.max(12, votes + (index + 1) * 7),
         createdAt: created,
       }
     },
@@ -374,5 +427,33 @@ export function createDemoState(now: Date = new Date()): DemoState {
     },
   ]
 
-  return { version: 1, users, categories, products, votes: [], comments, reports, sessionUserId: null }
+  const tags: Tag[] = TAGS.map(([slug, name]) => ({ id: TAG_IDS[slug]!, slug, name }))
+  const productTags: DemoProductTag[] = products.flatMap((p, index) => {
+    const mappings = [
+      ['open-source','utility'],
+      ['ai','automation'],
+      ['productivity'],
+      ['persian'],
+      ['education'],
+      ['fintech'],
+      ['web','design'],
+      ['devtools'],
+      ['api'],
+      ['web'],
+      ['content'],
+      ['ai'],
+      ['utility'],
+      ['security'],
+      ['data'],
+      ['devtools'],
+    ]
+    const slugs = mappings[index] ?? []
+    return slugs.filter((slug) => TAG_IDS[slug]).map((slug) => ({ productId: p.id, tagId: TAG_IDS[slug]! }))
+  })
+
+  const views: DemoProductView[] = products.flatMap((p) => [
+    { productId: p.id, viewerKey: `seed-${p.id}`, createdAt: ago(1) },
+  ])
+
+  return { version: 2, users, categories, tags, productTags, products, votes: [], comments, reports, saved: [], views, sessionUserId: null }
 }

@@ -1,4 +1,5 @@
 import { ApiError } from '@/lib/errors'
+import { leaderboardWindowStart, tehranDateLabel } from '@/lib/engagement'
 import { normalizeFa, slugify } from '@/lib/text'
 import { createDemoState, type DemoComment, type DemoProduct, type DemoState, type DemoUser } from './demoSeed'
 import {
@@ -6,13 +7,16 @@ import {
   type AuthEvent,
   type Category,
   type Comment,
+  type LeaderboardPeriod,
   type Product,
   type ProductSummary,
   type Profile,
   type ProfileSummary,
+  type RankedProduct,
   type Report,
   type Session,
   type ShekargahApi,
+  type TagRef,
 } from './types'
 
 export interface DemoStorage {
@@ -20,14 +24,14 @@ export interface DemoStorage {
   save(state: DemoState): void
 }
 
-const STORAGE_KEY = 'shekargah:demo:v1'
+const STORAGE_KEY = 'shekargah:demo:v2'
 
 export const browserStorage: DemoStorage = {
   load() {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY)
       const parsed = raw ? (JSON.parse(raw) as DemoState) : null
-      return parsed?.version === 1 ? parsed : null
+      return parsed?.version === 2 ? parsed : null
     } catch {
       return null
     }
@@ -110,6 +114,11 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     if (!category || (!category.isActive && user?.role !== 'admin')) return null
     return { id: category.id, slug: category.slug, name: category.name }
   }
+  const tagRefs = (productId: string): TagRef[] =>
+    state.productTags
+      .filter((pt) => pt.productId === productId)
+      .map((pt) => state.tags.find((tag) => tag.id === pt.tagId))
+      .flatMap((tag) => (tag ? [{ slug: tag.slug, name: tag.name }] : []))
   const toProductSummary = (p: DemoProduct): ProductSummary => ({
     id: p.id,
     slug: p.slug,
@@ -118,8 +127,10 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     logoUrl: p.logoUrl,
     votesCount: p.votesCount,
     commentsCount: p.commentsCount,
+    viewsCount: p.viewsCount,
     publishedAt: p.publishedAt,
     category: categoryRef(p.categoryId),
+    tags: tagRefs(p.id),
   })
   const toProduct = (p: DemoProduct): Product => ({
     ...toProductSummary(p),
@@ -248,14 +259,28 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         .map((c) => ({ ...c }))
     },
 
-    async listProducts({ search, category, sort, page }) {
+    async listTags() {
+      await wait()
+      return state.tags.map((tag) => ({ ...tag }))
+    },
+
+    async listProducts({ search, category, tags, sort, page }) {
       await wait()
       const term = normalizeFa(search?.trim() ?? '').toLowerCase()
       const categoryId = category ? state.categories.find((c) => c.slug === category)?.id ?? '__none__' : null
+      const wantedTags = new Set(tags ?? [])
       const matches = state.products
         .filter((p) => p.status === 'published')
         .filter((p) => !categoryId || p.categoryId === categoryId)
         .filter((p) => !term || `${p.name} ${p.tagline}`.toLowerCase().includes(term))
+        .filter((p) => {
+          if (wantedTags.size === 0) return true
+          return state.productTags.some((pt) => {
+            if (pt.productId !== p.id) return false
+            const tag = state.tags.find((tag) => tag.id === pt.tagId)
+            return tag ? wantedTags.has(tag.slug) : false
+          })
+        })
         .sort((a, b) => {
           if (sort === 'popular' && b.votesCount !== a.votesCount) return b.votesCount - a.votesCount
           return (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '')
@@ -282,6 +307,8 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     async submitProduct(input) {
       await wait()
       const user = requireUser()
+      if (input.tags.length > 5) throw new ApiError('too_many_tags')
+      if (input.tags.some((slug) => !state.tags.some((tag) => tag.slug === slug))) throw new ApiError('unknown_tag')
       if (state.products.filter((p) => p.makerId === user.id && p.status === 'pending').length >= 3) {
         throw new ApiError('too_many_pending')
       }
@@ -308,9 +335,13 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         publishedAt: null,
         votesCount: 0,
         commentsCount: 0,
+        viewsCount: 0,
         createdAt: now,
       }
       state.products.push(product)
+      state.productTags.push(
+        ...input.tags.map((slug) => ({ productId: product.id, tagId: state.tags.find((tag) => tag.slug === slug)!.id })),
+      )
       persist()
       return toProduct(product)
     },
@@ -325,6 +356,137 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       state.products = state.products.filter((p) => p.id !== productId)
       state.votes = state.votes.filter((v) => v.productId !== productId)
       state.comments = state.comments.filter((c) => c.productId !== productId)
+      state.saved = state.saved.filter((save) => save.productId !== productId)
+      state.views = state.views.filter((view) => view.productId !== productId)
+      state.productTags = state.productTags.filter((pt) => pt.productId !== productId)
+      persist()
+    },
+
+    async setProductTags(productId, slugs) {
+      await wait()
+      const user = requireUser()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      const allowed = user.role === 'admin' || (product.makerId === user.id && product.status !== 'published')
+      if (!allowed) throw new ApiError('not_authorized')
+      if (slugs.length > 5) throw new ApiError('too_many_tags')
+      if (slugs.some((slug) => !state.tags.some((tag) => tag.slug === slug))) throw new ApiError('unknown_tag')
+      state.productTags = state.productTags.filter((pt) => pt.productId !== productId)
+      state.productTags.push(...slugs.map((slug) => ({ productId, tagId: state.tags.find((tag) => tag.slug === slug)!.id })))
+      persist()
+    },
+
+    async listDailyProducts({ date, page }) {
+      await wait()
+      const target = date ?? tehranDateLabel()
+      const matches = state.products
+        .filter((p) => p.status === 'published' && p.publishedAt && tehranDateLabel(new Date(p.publishedAt)) === target)
+        .sort((a, b) => b.votesCount - a.votesCount || (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items: RankedProduct[] = matches.slice(start, start + PAGE_SIZE).map((p, index) => ({
+        ...toProductSummary(p),
+        rank: start + index + 1,
+        score: null,
+      }))
+      return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+    },
+
+    async listLeaderboard({ period, page }) {
+      await wait()
+      const startAt = leaderboardWindowStart(period as LeaderboardPeriod).getTime()
+      const scores = new Map<string, number>()
+      for (const vote of state.votes) {
+        if (new Date(vote.createdAt).getTime() >= startAt) scores.set(vote.productId, (scores.get(vote.productId) ?? 0) + 1)
+      }
+      const matches = state.products
+        .filter((p) => p.status === 'published' && (scores.get(p.id) ?? 0) > 0)
+        .sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) || (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items: RankedProduct[] = matches.slice(start, start + PAGE_SIZE).map((p, index) => ({
+        ...toProductSummary(p),
+        rank: start + index + 1,
+        score: scores.get(p.id) ?? 0,
+      }))
+      return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+    },
+
+    async listTrending(page) {
+      await wait()
+      const cutoff = Date.now() - 48 * 3600 * 1000
+      const votes = new Map<string, number>()
+      for (const vote of state.votes) {
+        if (new Date(vote.createdAt).getTime() > cutoff) votes.set(vote.productId, (votes.get(vote.productId) ?? 0) + 1)
+      }
+      const comments = new Map<string, number>()
+      for (const comment of state.comments) {
+        if (new Date(comment.createdAt).getTime() > cutoff) comments.set(comment.productId, (comments.get(comment.productId) ?? 0) + 1)
+      }
+      const matches = state.products
+        .filter((p) => p.status === 'published' && p.publishedAt && new Date(p.publishedAt).getTime() > Date.now() - 30 * 24 * 3600 * 1000)
+        .map((p) => ({ p, score: (votes.get(p.id) ?? 0) * 3 + (comments.get(p.id) ?? 0) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score || (b.p.publishedAt ?? '').localeCompare(a.p.publishedAt ?? ''))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items: RankedProduct[] = matches.slice(start, start + PAGE_SIZE).map(({ p, score }, index) => ({
+        ...toProductSummary(p),
+        rank: start + index + 1,
+        score,
+      }))
+      return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+    },
+
+    async recordProductView(productId, viewerKey) {
+      await wait()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product || product.status !== 'published') throw new ApiError('not_found')
+      if (!viewerKey.trim()) throw new ApiError('invalid_input')
+      const cutoff = Date.now() - 24 * 3600 * 1000
+      const exists = state.views.some(
+        (view) => view.productId === productId && view.viewerKey === viewerKey && new Date(view.createdAt).getTime() > cutoff,
+      )
+      if (exists) return
+      state.views.push({ productId, viewerKey: viewerKey.slice(0, 64), createdAt: new Date().toISOString() })
+      product.viewsCount += 1
+      persist()
+    },
+
+    async listMySavedProductIds(productIds) {
+      await wait()
+      const user = current()
+      if (!user) return []
+      return state.saved
+        .filter((save) => save.userId === user.id && productIds.includes(save.productId))
+        .map((save) => save.productId)
+    },
+
+    async listMySavedProducts(page) {
+      await wait()
+      const user = requireUser()
+      const matches = state.saved
+        .filter((save) => save.userId === user.id)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((save) => state.products.find((product) => product.id === save.productId))
+        .flatMap((product) => (product ? [product] : []))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = matches.slice(start, start + PAGE_SIZE).map(toProductSummary)
+      return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+    },
+
+    async saveProduct(productId) {
+      await wait()
+      const user = requireUser()
+      publishedProduct(productId)
+      if (state.saved.some((save) => save.userId === user.id && save.productId === productId)) throw new ApiError('duplicate')
+      state.saved.push({ userId: user.id, productId, createdAt: new Date().toISOString() })
+      persist()
+    },
+
+    async unsaveProduct(productId) {
+      await wait()
+      const user = requireUser()
+      const before = state.saved.length
+      state.saved = state.saved.filter((save) => !(save.userId === user.id && save.productId === productId))
+      if (state.saved.length === before) throw new ApiError('not_found')
       persist()
     },
 
@@ -339,7 +501,7 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       const user = requireUser()
       const product = publishedProduct(productId)
       if (state.votes.some((v) => v.userId === user.id && v.productId === productId)) throw new ApiError('duplicate')
-      state.votes.push({ userId: user.id, productId })
+      state.votes.push({ userId: user.id, productId, createdAt: new Date().toISOString() })
       product.votesCount += 1
       persist()
     },

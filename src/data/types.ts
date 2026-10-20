@@ -1,5 +1,6 @@
 export type ProductStatus = 'pending' | 'published' | 'rejected'
 export type SortOrder = 'popular' | 'newest'
+export type LeaderboardPeriod = 'daily' | 'weekly'
 export type Role = 'user' | 'admin'
 export type ReportReason = 'spam' | 'inappropriate' | 'misleading' | 'copyright' | 'other'
 export type ReportStatus = 'open' | 'resolved' | 'dismissed'
@@ -27,6 +28,17 @@ export interface CategoryRef {
   name: string
 }
 
+export interface Tag {
+  id: string
+  slug: string
+  name: string
+}
+
+export interface TagRef {
+  slug: string
+  name: string
+}
+
 export interface ProfileSummary {
   id: string
   username: string
@@ -48,8 +60,16 @@ export interface ProductSummary {
   logoUrl: string | null
   votesCount: number
   commentsCount: number
+  viewsCount: number
   publishedAt: string | null
   category: CategoryRef | null
+  tags: TagRef[]
+}
+
+/** A product with its position in a ranked list (daily, leaderboard, trending). */
+export interface RankedProduct extends ProductSummary {
+  rank: number
+  score: number | null
 }
 
 export interface Product extends ProductSummary {
@@ -86,6 +106,8 @@ export interface Report {
 export interface ProductQuery {
   search?: string
   category?: string
+  /** Products carrying at least one of these tag slugs. */
+  tags?: string[]
   sort: SortOrder
   page: number
 }
@@ -102,6 +124,7 @@ export interface SubmitProductInput {
   description: string
   websiteUrl: string
   categoryId: string
+  tags: string[]
   logo: File | null
 }
 
@@ -152,15 +175,30 @@ export interface ShekargahApi {
   updateProfile(userId: string, input: ProfileUpdate): Promise<Profile>
 
   listCategories(options?: { includeInactive?: boolean }): Promise<Category[]>
+  listTags(): Promise<Tag[]>
   listProducts(query: ProductQuery): Promise<Page<ProductSummary>>
   getProduct(slug: string): Promise<Product | null>
   listMakerProducts(makerId: string): Promise<Product[]>
   submitProduct(input: SubmitProductInput): Promise<Product>
   deleteProduct(productId: string): Promise<void>
+  setProductTags(productId: string, slugs: string[]): Promise<void>
+
+  /** Products published on a Tehran calendar day (defaults to today). */
+  listDailyProducts(input: { date?: string; page: number }): Promise<Page<RankedProduct>>
+  /** Products ranked by votes received inside a window, not lifetime totals. */
+  listLeaderboard(input: { period: LeaderboardPeriod; page: number }): Promise<Page<RankedProduct>>
+  /** Products with the fastest recent engagement. */
+  listTrending(page: number): Promise<Page<RankedProduct>>
+  recordProductView(productId: string, viewerKey: string): Promise<void>
 
   listMyVotes(productIds: string[]): Promise<string[]>
   vote(productId: string): Promise<void>
   unvote(productId: string): Promise<void>
+
+  listMySavedProductIds(productIds: string[]): Promise<string[]>
+  listMySavedProducts(page: number): Promise<Page<ProductSummary>>
+  saveProduct(productId: string): Promise<void>
+  unsaveProduct(productId: string): Promise<void>
 
   listComments(productId: string): Promise<Comment[]>
   addComment(productId: string, body: string): Promise<Comment>

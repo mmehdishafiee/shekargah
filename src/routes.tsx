@@ -4,12 +4,16 @@ import { RequireAdmin, RequireAuth } from '@/auth/guards'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AboutPage } from '@/pages/AboutPage'
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage, SignupPage } from '@/pages/AuthPages'
+import { DailyPage } from '@/pages/DailyPage'
 import { HomePage } from '@/pages/HomePage'
+import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductPage } from '@/pages/ProductPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { SavedPage } from '@/pages/SavedPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SubmitPage } from '@/pages/SubmitPage'
+import { TrendingPage } from '@/pages/TrendingPage'
 import { PageLoader } from '@/components/ui/Feedback'
 
 // The admin dashboard is only downloaded by administrators.
@@ -25,6 +29,10 @@ export const routes: RouteObject[] = [
     element: <AppLayout />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'today', element: <DailyPage /> },
+      { path: 'leaderboard', element: <LeaderboardPage /> },
+      { path: 'trending', element: <TrendingPage /> },
+      { path: 'saved', element: <RequireAuth><SavedPage /></RequireAuth> },
       { path: 'products/:slug', element: <ProductPage /> },
       { path: 'u/:username', element: <ProfilePage /> },
       { path: 'about', element: <AboutPage /> },

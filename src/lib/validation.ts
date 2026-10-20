@@ -17,6 +17,7 @@ export const LIMITS = {
   categoryDescription: { max: 200 },
   logoBytes: 1024 * 1024,
   avatarBytes: 512 * 1024,
+  tags: { max: 5 },
 } as const
 
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
@@ -51,6 +52,7 @@ export interface ProductFormValues {
   description: string
   websiteUrl: string
   categoryId: string
+  tags: string[]
   logo: File | null
 }
 
@@ -63,6 +65,7 @@ export function validateProduct(values: ProductFormValues): FieldErrors<keyof Pr
   else if (values.websiteUrl.trim().length > LIMITS.url.max) errors.websiteUrl = 'نشانی وب‌سایت بیش از حد طولانی است.'
   else if (!isHttpUrl(values.websiteUrl)) errors.websiteUrl = 'نشانی باید کامل و با https:// یا http:// شروع شود.'
   if (!values.categoryId) errors.categoryId = 'یک دسته‌بندی انتخاب کنید.'
+  if (values.tags.length > LIMITS.tags.max) errors.tags = `حداکثر ${formatNumber(LIMITS.tags.max)} برچسب انتخاب کنید.`
   errors.logo = validateImage(values.logo, LIMITS.logoBytes)
   return compact(errors)
 }
