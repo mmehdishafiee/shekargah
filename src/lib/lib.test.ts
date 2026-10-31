@@ -42,6 +42,7 @@ describe('validation', () => {
     categoryId: 'c-01',
     tags: [] as string[],
     logo: null,
+    screenshots: [] as File[],
   }
 
   it('accepts a complete product', () => {

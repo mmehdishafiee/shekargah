@@ -1,5 +1,5 @@
 import { Bookmark } from 'lucide-react'
-import { useMyVotes, useSavedProducts } from '@/data/queries'
+import { useMySavedIds, useMyVotes, useSavedProducts } from '@/data/queries'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductRow } from '@/components/product/ProductRow'
@@ -11,6 +11,7 @@ export function SavedPage() {
   const feed = useSavedProducts()
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const votes = useMyVotes(products.map((p) => p.id))
+  const saved = useMySavedIds(products.map((p) => p.id))
   useDocumentMeta('ذخیره‌شده‌های من')
 
   return (
@@ -42,7 +43,7 @@ export function SavedPage() {
           <ol aria-label="ذخیره‌شده‌ها" className="transition-opacity">
             {products.map((product) => (
               <li key={product.id}>
-                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} />
+                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} />
               </li>
             ))}
           </ol>

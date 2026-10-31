@@ -72,11 +72,18 @@ export interface RankedProduct extends ProductSummary {
   score: number | null
 }
 
+export interface ProductScreenshot {
+  url: string
+  key: string
+  alt: string | null
+}
+
 export interface Product extends ProductSummary {
   description: string
   websiteUrl: string
   status: ProductStatus
   maker: ProfileSummary
+  screenshots: ProductScreenshot[]
   moderationNote: string | null
   moderatedAt: string | null
   moderatorName: string | null
@@ -126,6 +133,7 @@ export interface SubmitProductInput {
   categoryId: string
   tags: string[]
   logo: File | null
+  screenshots: File[]
 }
 
 export interface ProfileUpdate {
@@ -145,6 +153,15 @@ export interface CategoryInput {
   isActive: boolean
 }
 
+export interface AdminProductUpdate {
+  id: string
+  name: string
+  tagline: string
+  description: string
+  websiteUrl: string
+  categoryId: string
+}
+
 export interface ReportInput {
   productId?: string
   commentId?: string
@@ -155,17 +172,19 @@ export interface ReportInput {
 export type AuthEvent = 'SIGNED_IN' | 'SIGNED_OUT' | 'PASSWORD_RECOVERY' | 'OTHER'
 
 /**
- * Everything the UI needs from a backend. Two implementations exist:
- * `supabaseApi` (production) and `demoApi` (browser-only sample data).
- * Authorization is enforced by the database; the demo mirrors the same rules.
+ * Everything the UI needs from a backend. `supabaseApi` is the only production
+ * implementation. `demoApi` is a test fixture — never wired to the real app.
  */
+export type OAuthProvider = 'google' | 'github'
+
 export interface ShekargahApi {
-  readonly mode: 'demo' | 'supabase'
+  readonly mode: 'supabase' | 'demo'
 
   getSession(): Promise<Session | null>
   onAuthChange(listener: (session: Session | null, event: AuthEvent) => void): () => void
   signUp(input: { email: string; password: string; displayName: string }): Promise<{ needsConfirmation: boolean }>
   signIn(input: { email: string; password: string }): Promise<void>
+  signInWithOAuth(provider: OAuthProvider, redirectTo: string): Promise<void>
   signOut(): Promise<void>
   requestPasswordReset(email: string): Promise<void>
   updatePassword(password: string): Promise<void>
@@ -182,6 +201,12 @@ export interface ShekargahApi {
   submitProduct(input: SubmitProductInput): Promise<Product>
   deleteProduct(productId: string): Promise<void>
   setProductTags(productId: string, slugs: string[]): Promise<void>
+  /** Admin-only: update a product's content fields (not status/counters/maker). */
+  adminUpdateProduct(input: AdminProductUpdate): Promise<void>
+  /** Attach a logo to an existing product (maker on unpublished, admin anywhere). */
+  setProductLogo(productId: string, logo: File): Promise<void>
+  /** Replace a product's screenshots with the given files + kept existing keys. */
+  setProductScreenshots(productId: string, input: { keep: { key: string; alt: string | null }[]; add: File[] }): Promise<void>
 
   /** Products published on a Tehran calendar day (defaults to today). */
   listDailyProducts(input: { date?: string; page: number }): Promise<Page<RankedProduct>>

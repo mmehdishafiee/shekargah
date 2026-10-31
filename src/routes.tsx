@@ -21,6 +21,7 @@ const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout').then((m) => (
 const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage').then((m) => ({ default: m.AdminProductsPage })))
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage').then((m) => ({ default: m.AdminReportsPage })))
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage').then((m) => ({ default: m.AdminCategoriesPage })))
+const AdminProductEditPage = lazy(() => import('@/pages/admin/AdminProductEditPage').then((m) => ({ default: m.AdminProductEditPage })))
 
 const load = (element: ReactNode) => <Suspense fallback={<PageLoader />}>{element}</Suspense>
 
@@ -48,6 +49,7 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, element: load(<AdminProductsPage key="pending" status="pending" />) },
           { path: 'published', element: load(<AdminProductsPage key="published" status="published" />) },
+          { path: 'products/:slug/edit', element: load(<AdminProductEditPage />) },
           { path: 'rejected', element: load(<AdminProductsPage key="rejected" status="rejected" />) },
           { path: 'reports', element: load(<AdminReportsPage />) },
           { path: 'categories', element: load(<AdminCategoriesPage />) },

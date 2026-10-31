@@ -1,5 +1,5 @@
 import { Flame } from 'lucide-react'
-import { useMyVotes, useTrending } from '@/data/queries'
+import { useMySavedIds, useMyVotes, useTrending } from '@/data/queries'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductRow } from '@/components/product/ProductRow'
@@ -12,6 +12,7 @@ export function TrendingPage() {
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
+  const saved = useMySavedIds(products.map((p) => p.id))
   useDocumentMeta('داغ‌ترین‌ها')
 
   return (
@@ -44,7 +45,7 @@ export function TrendingPage() {
           <ol aria-label="داغ‌ترین‌ها" className="transition-opacity">
             {products.map((product) => (
               <li key={product.id}>
-                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} rank={product.rank} />
+                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} rank={product.rank} />
               </li>
             ))}
           </ol>

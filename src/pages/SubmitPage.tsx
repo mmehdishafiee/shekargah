@@ -16,7 +16,7 @@ import { Field, Select, TextArea, TextInput } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Feedback'
 import { cardClass } from '@/components/ui/styles'
 
-const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', tags: [], logo: null }
+const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', tags: [], logo: null, screenshots: [] }
 
 export function SubmitPage() {
   useDocumentMeta('معرفی محصول')
@@ -191,6 +191,50 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+        </Field>
+
+        <Field
+          label="اسکرین‌شات‌ها"
+          optional
+          hint={`تا ${LIMITS.screenshots.max} تصویر PNG، JPG یا WebP — هر کدام تا ${formatBytes(LIMITS.screenshotBytes)}.`}
+          error={errors.screenshots}
+        >
+          {(props) => (
+            <div className="space-y-3">
+              <label className="inline-flex h-9 cursor-pointer items-center rounded-control border border-line-strong bg-surface px-3.5 text-sm font-medium hover:bg-sunken has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-600">
+                افزودن تصویر
+                <input
+                  {...props}
+                  type="file"
+                  multiple
+                  accept={IMAGE_TYPES.join(',')}
+                  className="sr-only"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? [])
+                    set('screenshots', [...values.screenshots, ...files].slice(0, LIMITS.screenshots.max + 1))
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              {values.screenshots.length > 0 && (
+                <ul className="flex flex-wrap gap-2">
+                  {values.screenshots.map((file, index) => (
+                    <li key={`${file.name}-${index}`} className="group relative overflow-hidden rounded-lg border border-line bg-sunken">
+                      <img src={URL.createObjectURL(file)} alt={file.name} className="size-24 object-cover" />
+                      <button
+                        type="button"
+                        aria-label={`حذف ${file.name}`}
+                        onClick={() => set('screenshots', values.screenshots.filter((_, i) => i !== index))}
+                        className="absolute start-1 top-1 grid size-5 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X size={12} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </Field>

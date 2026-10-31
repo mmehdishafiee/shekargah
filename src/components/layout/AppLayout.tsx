@@ -1,30 +1,9 @@
 import { useEffect } from 'react'
 import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router'
-import { RotateCcw } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
-import { useApi } from '@/data/api'
-import { resetDemoStorage } from '@/data/demoApi'
 import { env } from '@/lib/env'
 import { LogoMark } from '@/components/brand/Logo'
 import { Header } from './Header'
-
-function DemoBanner() {
-  const reset = () => {
-    resetDemoStorage()
-    window.location.assign('/')
-  }
-  return (
-    <div className="bg-ink text-[13px] text-white/90">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center">
-        <span>حالت نمایشی: محصولات و افراد نمونه‌اند و تغییرات فقط در همین مرورگر ذخیره می‌شود.</span>
-        <button type="button" onClick={reset} className="inline-flex items-center gap-1 font-semibold text-white underline-offset-4 hover:underline">
-          <RotateCcw size={13} strokeWidth={2} aria-hidden />
-          بازنشانی داده‌ها
-        </button>
-      </div>
-    </div>
-  )
-}
 
 function Footer() {
   return (
@@ -63,17 +42,26 @@ function Footer() {
 
 /** Sends users who opened a password recovery link to the reset form. */
 function RecoveryRedirect() {
-  const { passwordRecovery } = useAuth()
+  const { passwordRecovery, session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   useEffect(() => {
-    if (passwordRecovery && location.pathname !== '/reset-password') navigate('/reset-password', { replace: true })
-  }, [passwordRecovery, location.pathname, navigate])
+    if (passwordRecovery && location.pathname !== '/reset-password') {
+      navigate('/reset-password', { replace: true })
+      return
+    }
+    if (session) {
+      const target = sessionStorage.getItem('shekargah:auth-target')
+      if (target && target.startsWith('/') && !target.startsWith('//') && location.pathname === '/') {
+        sessionStorage.removeItem('shekargah:auth-target')
+        navigate(target, { replace: true })
+      }
+    }
+  }, [passwordRecovery, session, location.pathname, navigate])
   return null
 }
 
 export function AppLayout() {
-  const api = useApi()
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -82,7 +70,6 @@ export function AppLayout() {
       >
         رفتن به محتوای اصلی
       </a>
-      {api.mode === 'demo' && <DemoBanner />}
       <Header />
       <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
         <Outlet />

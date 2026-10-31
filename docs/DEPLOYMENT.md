@@ -108,9 +108,25 @@ npm run dev
 ### Verify a deployment
 
 - The Cloudflare build log ends with `Success`.
-- Open the `*.pages.dev` URL: no "حالت نمایشی" banner (that would mean the env variables are missing).
+- Open the `*.pages.dev` URL: no "حالت نمایشی" banner and real products load (that would mean the env variables are missing — the app now fails closed instead of falling back to demo data).
 - Refresh on a nested page (e.g. `/about`). It must load, not 404.
 - Sign up, confirm the email, submit a product, approve it as admin, vote, comment.
+
+## OAuth sign-in (Google + GitHub)
+
+The app offers two social sign-in buttons on the login page. To enable them:
+
+1. **Supabase Dashboard → Authentication → Providers**
+2. Enable **Google** and **GitHub**, and paste each provider's Client ID + Secret.
+3. Add these redirect URLs under **Authentication → URL Configuration → Redirect URLs**:
+   - `https://shekargah.mmehdi.ir/**`
+   - `https://*.shekargah.pages.dev/**`
+   - `http://localhost:5173/**`
+   - `http://localhost:4173/**`
+4. For GitHub OAuth, the callback URL shown in Supabase goes in your GitHub OAuth App settings.
+5. For Google, the Supabase callback URL goes in the Google Cloud OAuth consent screen + authorized redirect URIs.
+
+Until a provider is configured in Supabase, its button shows a friendly "not configured" error instead of breaking the page.
 
 ## 4. Create the first administrator
 
@@ -155,6 +171,7 @@ Quotas change; check https://supabase.com/pricing and https://developers.cloudfl
 - The built-in email service is meant for testing and has a **very low hourly rate limit**. Before real launch, configure custom SMTP under **Authentication → SMTP Settings** (many providers have free tiers).
 - Free projects have limited backup options (no point-in-time recovery).
 - **Cloudflare Pages Free** has a monthly build limit and a concurrent build limit; static requests are unmetered.
+- **Product screenshots** live in the `product-screenshots` Supabase bucket (max 1 MB each, PNG/JPEG/WebP, up to 5 per product). Metadata rows are in `public.product_screenshots`, written only via the `set_product_screenshots` RPC (maker on unpublished products, admin anywhere).
 
 ## 8. Backup and recovery
 

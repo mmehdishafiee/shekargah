@@ -5,6 +5,5 @@ export const env = {
   supabaseUrl: url,
   supabaseKey: key,
   repositoryUrl: (import.meta.env.VITE_REPOSITORY_URL ?? '').trim(),
-  /** Without Supabase credentials the app runs on browser-only demo data. */
-  isDemo: !url || !key,
+  isConfigured: Boolean(url && key),
 } as const

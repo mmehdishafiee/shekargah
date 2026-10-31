@@ -128,6 +128,23 @@ function ProductDetails({ product }: { product: Product }) {
           </p>
         </section>
 
+        {product.screenshots.length > 0 && (
+          <section aria-label="اسکرین‌شات‌ها" className={`${cardClass} p-5 sm:p-6`}>
+            <h2 className="mb-4 text-sm font-bold text-ink-muted">اسکرین‌شات‌ها</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {product.screenshots.map((shot, index) => (
+                <img
+                  key={`${shot.url}-${index}`}
+                  src={shot.url}
+                  alt={shot.alt ?? `اسکرین‌شات ${product.name}`}
+                  loading="lazy"
+                  className="w-full rounded-lg border border-line object-cover"
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className={`${cardClass} p-5 sm:p-6`}>
           <CommentSection productId={product.id} slug={product.slug} open={isPublished} />
         </div>

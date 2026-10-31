@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import { randomUUID } from 'node:crypto'
 import type { PGlite } from '@electric-sql/pglite'
 import { ANON, as, createTestDatabase, createUser, errorOf, promoteToAdmin, type Actor } from './harness.ts'
 
@@ -131,12 +132,12 @@ describe('product submissions', () => {
     expect(await errorOf(submit(ANON, 'ناشناس'))).toMatch(/permission denied/)
   })
 
-  it('limits each user to three pending submissions', async () => {
+  it('allows up to three thousand pending submissions', async () => {
     const carol = await createUser(db, 'carol@shekargah.test')
-    await submit(carol, 'اول')
-    await submit(carol, 'دوم')
-    await submit(carol, 'سوم')
-    expect(await errorOf(submit(carol, 'چهارم'))).toMatch(/too_many_pending_submissions/)
+    for (let index = 0; index < 3000; index += 1) {
+      await submit(carol, `محصول ${index}`)
+    }
+    expect(await errorOf(submit(carol, 'محصول سه هزار و یک'))).toMatch(/too_many_pending_submissions/)
   })
 
   it('hides pending products from the public and from other users', async () => {
@@ -494,22 +495,86 @@ describe('engagement: tags, saves, views and rankings', () => {
   })
 })
 
-describe('storage', () => {
-  const upload = (actor: Actor, bucket: string, name: string) =>
-    as(db, actor, (tx) => tx.query(`insert into storage.objects (bucket_id, name) values ($1, $2)`, [bucket, name]))
-
-  it('creates size- and type-limited public buckets', async () => {
-    const { rows } = await db.query<Row>(`select id, public, file_size_limit, allowed_mime_types from storage.buckets order by id`)
-    expect(rows).toEqual([
-      { id: 'avatars', public: true, file_size_limit: 524288, allowed_mime_types: ['image/png', 'image/jpeg', 'image/webp'] },
-      { id: 'product-logos', public: true, file_size_limit: 1048576, allowed_mime_types: ['image/png', 'image/jpeg', 'image/webp'] },
-    ])
+describe('product screenshots', () => {
+  it('exposes only published products to the public and makers/admins for drafts', async () => {
+    const carol = await createUser(db, 'carol-shots@shekargah.test')
+    const pending = await submit(carol, 'در حال بررسی')
+    const shotMaker = await createUser(db, 'carol-shots-pub@shekargah.test')
+    const published = await publish('با اسکرین‌شات', shotMaker)
+    await db.query(
+      `insert into public.product_screenshots (product_id, object_key, sort_order) values ($1, $2, 1)`,
+      [published.id, `${shotMaker.id}/${randomUUID()}.webp`],
+    )
+    await db.query(
+      `insert into public.product_screenshots (product_id, object_key, sort_order) values ($1, $2, 1)`,
+      [pending.id, `${carol.id}/${randomUUID()}.png`],
+    )
+    const visibleToAnon = await as(db, ANON, async (tx) =>
+      (await tx.query(`select object_key from public.product_screenshots where product_id = $1`, [published.id])).rows,
+    )
+    expect(visibleToAnon).toHaveLength(1)
+    expect(await as(db, ANON, async (tx) =>
+      (await tx.query(`select 1 from public.product_screenshots where product_id = $1`, [pending.id])).rows.length,
+    )).toBe(0)
+    const visibleToMaker = await as(db, carol, async (tx) =>
+      (await tx.query(`select 1 from public.product_screenshots where product_id = $1`, [pending.id])).rows.length,
+    )
+    expect(visibleToMaker).toBe(1)
   })
 
-  it('lets users upload only into their own folder and only raster images', async () => {
-    await upload(alice, 'product-logos', `${alice.id}/logo.png`)
-    expect(await errorOf(upload(alice, 'product-logos', `${bob.id}/logo.png`))).toMatch(/row-level security/)
-    expect(await errorOf(upload(alice, 'product-logos', `${alice.id}/logo.svg`))).toMatch(/row-level security/)
-    expect(await errorOf(upload(ANON, 'product-logos', `anon/logo.png`))).toMatch(/row-level security/)
+  it('stores screenshots through the RPC only for the owner and own files', async () => {
+    const owner = await createUser(db, 'shot-owner@shekargah.test')
+    const product = await submit(owner, 'اسکرین‌های من')
+    const own = `${owner.id}/${randomUUID()}.webp`
+    await as(db, owner, (tx) => tx.query(`select public.set_product_screenshots($1, $2)`, [
+      product.id,
+      JSON.stringify([{ object_key: own, alt: 'نمای اصلی' }]),
+    ]))
+    const { rows } = await db.query<Row>(`select object_key, alt_text, sort_order from public.product_screenshots where product_id = $1`, [product.id])
+    expect(rows).toEqual([{ object_key: own, alt_text: 'نمای اصلی', sort_order: 1 }])
+
+    const stolen = `${bob.id}/${randomUUID()}.png`
+    expect(await errorOf(as(db, owner, (tx) => tx.query(`select public.set_product_screenshots($1, $2)`, [
+      product.id,
+      JSON.stringify([{ object_key: stolen }]),
+    ])))).toMatch(/invalid_input/)
+
+    const otherOwner = await createUser(db, 'shot-other@shekargah.test')
+    const other = await submit(otherOwner, 'محصول دیگری')
+    expect(await errorOf(as(db, owner, (tx) => tx.query(`select public.set_product_screenshots($1, $2)`, [
+      other.id,
+      JSON.stringify([{ object_key: own }]),
+    ])))).toMatch(/not_authorized/)
+  })
+
+  it('rejects invalid sort order and external URLs', async () => {
+    const carol = await createUser(db, 'carol-shots2@shekargah.test')
+    const product = await publish('مرتب‌سازی', carol)
+    expect(await errorOf(db.query(
+      `insert into public.product_screenshots (product_id, object_key, sort_order) values ($1, $2, 0)`,
+      [product.id, `${carol.id}/${randomUUID()}.webp`],
+    ))).toMatch(/check constraint/)
+    expect(await errorOf(db.query(
+      `insert into public.product_screenshots (product_id, object_key, sort_order) values ($1, $2, 1)`,
+      [product.id, 'https://example.com/x.png'],
+    ))).toMatch(/check constraint/)
+  })
+})
+
+describe('product logos', () => {
+  it('lets the maker set their own logo path through the RPC only', async () => {
+    const owner = await createUser(db, 'logo-owner@shekargah.test')
+    const product = await submit(owner, 'با لوگو')
+    const logo = `${owner.id}/${randomUUID()}.png`
+    await as(db, owner, (tx) => tx.query(`select public.set_product_logo($1, $2)`, [product.id, logo]))
+    const { rows } = await db.query<Row>(`select logo_path from public.products where id = $1`, [product.id])
+    expect(rows[0]!.logo_path).toBe(logo)
+
+    const wrong = `${bob.id}/${randomUUID()}.png`
+    expect(await errorOf(as(db, owner, (tx) => tx.query(`select public.set_product_logo($1, $2)`, [product.id, wrong])))).toMatch(/invalid_logo_path/)
+
+    const other = await createUser(db, 'logo-other@shekargah.test')
+    const otherProduct = await submit(other, 'محصول دیگری')
+    expect(await errorOf(as(db, owner, (tx) => tx.query(`select public.set_product_logo($1, $2)`, [otherProduct.id, logo])))).toMatch(/not_authorized/)
   })
 })

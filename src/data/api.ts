@@ -10,11 +10,9 @@ export function useApi(): ShekargahApi {
   return api
 }
 
-/** Loads only the backend in use, so demo builds never ship supabase-js and vice versa. */
 export async function createDefaultApi(): Promise<ShekargahApi> {
-  if (env.isDemo) {
-    const { createDemoApi } = await import('./demoApi')
-    return createDemoApi({ latencyMs: 250 })
+  if (!env.isConfigured) {
+    throw new Error('Supabase configuration is missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
   }
   const { createSupabaseApi } = await import('./supabaseApi')
   return createSupabaseApi(env.supabaseUrl, env.supabaseKey)

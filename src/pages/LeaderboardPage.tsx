@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router'
 import { Trophy } from 'lucide-react'
-import { useLeaderboard, useMyVotes } from '@/data/queries'
+import { useLeaderboard, useMySavedIds, useMyVotes } from '@/data/queries'
 import type { LeaderboardPeriod } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -21,6 +21,7 @@ export function LeaderboardPage() {
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
+  const saved = useMySavedIds(products.map((p) => p.id))
   const active = PERIODS.find((item) => item.value === period)!
   useDocumentMeta(`جدول رتبه‌بندی ${active.label}`)
 
@@ -76,7 +77,7 @@ export function LeaderboardPage() {
           <ol aria-label="جدول رتبه‌بندی" className="transition-opacity">
             {products.map((product) => (
               <li key={product.id}>
-                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} rank={product.rank} />
+                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} rank={product.rank} />
               </li>
             ))}
           </ol>

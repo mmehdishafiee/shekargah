@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router'
 import { PackageSearch } from 'lucide-react'
-import { useDailyProducts, useMyVotes } from '@/data/queries'
+import { useDailyProducts, useMySavedIds, useMyVotes } from '@/data/queries'
 import { tehranDateLabel } from '@/lib/engagement'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -19,6 +19,7 @@ export function DailyPage() {
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
+  const saved = useMySavedIds(products.map((p) => p.id))
 
   useDocumentMeta(isToday ? 'محصولات امروز' : `محصولات ${date}`)
 
@@ -79,7 +80,7 @@ export function DailyPage() {
           <ol aria-label="محصولات امروز" className="transition-opacity">
             {products.map((product) => (
               <li key={product.id}>
-                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} rank={product.rank} />
+                <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} rank={product.rank} />
               </li>
             ))}
           </ol>

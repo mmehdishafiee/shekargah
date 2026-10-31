@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Package, Settings, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { useMakerProducts, useMyVotes, useProfileByUsername } from '@/data/queries'
+import { useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
@@ -27,6 +27,7 @@ export function ProfilePage() {
   const published = products.data?.filter((p) => p.status === 'published') ?? []
   const unpublished = products.data?.filter((p) => p.status !== 'published') ?? []
   const votes = useMyVotes(published.map((p) => p.id))
+  const saved = useMySavedIds(published.map((p) => p.id))
   useDocumentMeta(profile.data?.displayName ?? (profile.isSuccess ? 'کاربر پیدا نشد' : undefined), profile.data?.bio ?? undefined)
 
   if (profile.isPending) return <PageLoader />
@@ -104,7 +105,7 @@ export function ProfilePage() {
             <ul>
               {published.map((product) => (
                 <li key={product.id}>
-                  <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} />
+                  <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} />
                 </li>
               ))}
             </ul>

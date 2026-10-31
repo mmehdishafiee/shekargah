@@ -17,6 +17,8 @@ export const LIMITS = {
   categoryDescription: { max: 200 },
   logoBytes: 1024 * 1024,
   avatarBytes: 512 * 1024,
+  screenshotBytes: 1024 * 1024,
+  screenshots: { max: 5 },
   tags: { max: 5 },
 } as const
 
@@ -54,6 +56,7 @@ export interface ProductFormValues {
   categoryId: string
   tags: string[]
   logo: File | null
+  screenshots: File[]
 }
 
 export function validateProduct(values: ProductFormValues): FieldErrors<keyof ProductFormValues> {
@@ -67,6 +70,17 @@ export function validateProduct(values: ProductFormValues): FieldErrors<keyof Pr
   if (!values.categoryId) errors.categoryId = 'یک دسته‌بندی انتخاب کنید.'
   if (values.tags.length > LIMITS.tags.max) errors.tags = `حداکثر ${formatNumber(LIMITS.tags.max)} برچسب انتخاب کنید.`
   errors.logo = validateImage(values.logo, LIMITS.logoBytes)
+  if (values.screenshots.length > LIMITS.screenshots.max) {
+    errors.screenshots = `حداکثر ${formatNumber(LIMITS.screenshots.max)} اسکرین‌شات انتخاب کنید.`
+  } else {
+    for (const file of values.screenshots) {
+      const problem = validateImage(file, LIMITS.screenshotBytes)
+      if (problem) {
+        errors.screenshots = problem
+        break
+      }
+    }
+  }
   return compact(errors)
 }
 

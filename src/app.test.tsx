@@ -153,7 +153,45 @@ describe('admin', () => {
   })
 })
 
+describe('saved products', () => {
+  it('shows a save button on feed rows and saves the product', async () => {
+    const api = await signedInApi(DEMO_USER_EMAIL)
+    const { user } = renderApp('/', api)
+    const list = await screen.findByRole('list', { name: 'فهرست محصولات' })
+    const first = within(list).getAllByRole('article')[0]!
+    const saveButton = within(first).getByRole('button', { name: /ذخیره/ })
+    await user.click(saveButton)
+    await waitFor(async () => {
+      const saved = await api.listMySavedProducts(0)
+      expect(saved.items.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('lists saved products on /saved', async () => {
+    const api = await signedInApi(DEMO_USER_EMAIL)
+    const feed = await api.listProducts({ sort: 'popular', page: 0 })
+    await api.saveProduct(feed.items[0]!.id)
+    renderApp('/saved', api)
+    expect(await screen.findByRole('heading', { level: 1, name: /ذخیره/ })).toBeInTheDocument()
+    expect(await screen.findByText(feed.items[0]!.name)).toBeInTheDocument()
+  })
+})
+
+describe('ranked routes', () => {
+  it('renders today, trending and leaderboard pages', async () => {
+    renderApp('/today')
+    expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+})
+
 describe('auth', () => {
+  it('shows Google and GitHub OAuth options on the login page', async () => {
+    renderApp('/login')
+    expect(await screen.findByRole('button', { name: 'ورود با گوگل' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ورود با گیت‌هاب' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ورود' })).toBeInTheDocument()
+  })
+
   it('signs up and lands signed in (demo mode)', async () => {
     const { user, router } = renderApp('/signup')
     await user.type(await screen.findByRole('textbox', { name: 'نام نمایشی' }), 'کاربر تازه')

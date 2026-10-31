@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router'
 import { PackageSearch, Plus } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
-import { useCategories, useMyVotes, useProductFeed } from '@/data/queries'
+import { useCategories, useMySavedIds, useMyVotes, useProductFeed } from '@/data/queries'
 import type { SortOrder } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -31,6 +31,7 @@ export function HomePage() {
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
+  const saved = useMySavedIds(products.map((p) => p.id))
 
   const activeCategory = categories.data?.find((c) => c.slug === category)
   const heading = search ? `نتیجه‌های «${search}»` : (activeCategory?.name ?? 'کشف محصولات تازه')
@@ -133,7 +134,7 @@ export function HomePage() {
             <ol aria-label="فهرست محصولات" className={`transition-opacity ${feed.isPlaceholderData ? 'opacity-60' : ''}`} aria-busy={feed.isFetching}>
               {products.map((product, index) => (
                 <li key={product.id}>
-                  <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} rank={sort === 'popular' ? index + 1 : undefined} />
+                  <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} rank={sort === 'popular' ? index + 1 : undefined} />
                 </li>
               ))}
             </ol>

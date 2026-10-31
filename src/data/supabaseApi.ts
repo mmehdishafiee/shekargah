@@ -1,6 +1,7 @@
 import { AuthError, createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, type ApiErrorCode } from '@/lib/errors'
 import { normalizeFa } from '@/lib/text'
+import { parseStored } from './storage'
 import {
   PAGE_SIZE,
   type Category,
@@ -61,6 +62,7 @@ interface ProductRow {
   maker: ProfileRow
   moderator: { display_name: string } | null
   product_tags: { tags: { slug: string; name: string } | null }[]
+  product_screenshots?: { storage_provider: 'supabase' | 'r2'; object_key: string; alt_text: string | null; sort_order: number }[]
 }
 
 interface FeedRow {
@@ -118,7 +120,8 @@ const PRODUCT_SELECT = `id, slug, name, tagline, description, website_url, logo_
   category:categories(id, slug, name),
   maker:profiles!products_maker_id_fkey(${PROFILE_SUMMARY}),
   moderator:profiles!products_moderated_by_fkey(display_name),
-  product_tags:product_tags(tags(slug, name))`
+  product_tags:product_tags(tags(slug, name)),
+  product_screenshots:product_screenshots(storage_provider, object_key, alt_text, sort_order)`
 const COMMENT_SELECT = `id, product_id, body, created_at, author:profiles!comments_author_id_fkey(${PROFILE_SUMMARY})`
 const REPORT_SELECT = `id, reason, details, status, created_at, resolved_at,
   reporter:profiles!reports_reporter_id_fkey(${PROFILE_SUMMARY}),
@@ -194,11 +197,16 @@ export function mapAuthError(error: AuthError): ApiError {
   return new ApiError('unknown', error.message)
 }
 
-/** Unwraps a query that must return data (lists, `.single()`, RPCs). */
+/** Unwraps a query that must return data (lists, `.single()`, row-returning RPCs). */
 function check<T>(result: { data: T; error: PostgrestError | null }): NonNullable<T> {
   if (result.error) throw mapPostgrestError(result.error)
   if (result.data === null || result.data === undefined) throw new ApiError('not_found')
   return result.data
+}
+
+/** Unwraps an RPC or mutation whose successful response has no data payload. */
+function checkVoid(result: { data: unknown; error: PostgrestError | null }): void {
+  if (result.error) throw mapPostgrestError(result.error)
 }
 
 /** Unwraps a `.maybeSingle()` query, where no row is a valid answer. */
@@ -216,9 +224,11 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
     })
 
-  const publicUrl = (bucket: string, path: string | null) =>
-    path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null
-
+  const publicUrl = (bucket: string, path: string | null) => {
+    const stored = parseStored(path)
+    if (!stored.path) return null
+    return supabase.storage.from(bucket).getPublicUrl(stored.path).data.publicUrl
+  }
   const toSummary = (row: ProfileRow): ProfileSummary => ({
     id: row.id,
     username: row.username,
@@ -258,6 +268,12 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     websiteUrl: row.website_url,
     status: row.status,
     maker: toSummary(row.maker),
+    screenshots: (row.product_screenshots ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .flatMap((shot) => {
+        const url = supabase.storage.from('product-screenshots').getPublicUrl(shot.object_key).data.publicUrl
+        return [{ url, key: shot.object_key, alt: shot.alt_text }]
+      }),
     moderationNote: row.moderation_note,
     moderatedAt: row.moderated_at,
     moderatorName: row.moderator?.display_name ?? null,
@@ -278,22 +294,24 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     return id
   }
 
-  async function upload(bucket: string, file: File): Promise<string> {
-    const userId = await currentUserId()
+  async function upload(bucket: string, file: File, ownerId: string): Promise<string> {
     const extension = EXTENSIONS[file.type]
     if (!extension) throw new ApiError('upload_failed', `unsupported type ${file.type}`)
-    const path = `${userId}/${crypto.randomUUID()}.${extension}`
-    const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    const objectPath = `${ownerId}/${crypto.randomUUID()}.${extension}`
+    const { error } = await supabase.storage.from(bucket).upload(objectPath, file, {
       contentType: file.type,
       cacheControl: '31536000',
       upsert: false,
     })
     if (error) throw new ApiError('upload_failed', error.message)
-    return path
+    return objectPath
   }
 
   async function removeFile(bucket: string, path: string | null | undefined) {
-    if (path) await supabase.storage.from(bucket).remove([path])
+    const stored = parseStored(path)
+    if (!stored.path) return
+    if (stored.provider !== 'supabase') return
+    await supabase.storage.from(bucket).remove([stored.path])
   }
 
   const toSession = (session: { user: { id: string; email?: string } } | null): Session | null =>
@@ -329,8 +347,20 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     },
 
     async signIn({ email, password }) {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
       if (error) throw mapAuthError(error)
+    },
+
+    async signInWithOAuth(provider, redirectTo) {
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo },
+        })
+        if (error) throw error
+      } catch (error) {
+        throw mapAuthError(error instanceof AuthError ? error : new AuthError('OAuth provider is not configured'))
+      }
     },
 
     async signOut() {
@@ -352,7 +382,16 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
 
     async getProfile(userId) {
       const row = maybe(await supabase.from('profiles').select(PROFILE_FULL).eq('id', userId).maybeSingle<ProfileRow>())
-      return row ? toProfile(row) : null
+      if (row) return toProfile(row)
+      // Repair a missing profile after login. This covers legacy users created
+      // before the trigger fix and keeps the profile flow self-healing.
+      const { data } = await supabase.auth.getSession()
+      if (data.session?.user.id === userId) {
+        check(await supabase.rpc('ensure_profile'))
+        const repaired = maybe(await supabase.from('profiles').select(PROFILE_FULL).eq('id', userId).maybeSingle<ProfileRow>())
+        return repaired ? toProfile(repaired) : null
+      }
+      return null
     },
 
     async getProfileByUsername(username) {
@@ -372,7 +411,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         await supabase.from('profiles').select('avatar_path').eq('id', userId).single<{ avatar_path: string | null }>(),
       )
       let avatarPath = existing.avatar_path
-      if (input.avatar) avatarPath = await upload('avatars', input.avatar)
+      if (input.avatar) avatarPath = await upload('avatars', input.avatar, userId)
       else if (input.removeAvatar) avatarPath = null
 
       const { data, error } = await supabase
@@ -448,7 +487,6 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     },
 
     async submitProduct(input) {
-      const logoPath = input.logo ? await upload('product-logos', input.logo) : null
       const { data, error } = await supabase
         .from('products')
         .insert({
@@ -457,38 +495,117 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
           description: input.description.trim(),
           website_url: input.websiteUrl.trim(),
           category_id: input.categoryId,
-          logo_path: logoPath,
         })
-        .select(PRODUCT_SELECT)
-        .single<ProductRow>()
-      if (error) {
-        await removeFile('product-logos', logoPath)
-        throw mapPostgrestError(error)
+        .select('id')
+        .single<{ id: string }>()
+      if (error) throw mapPostgrestError(error)
+
+      const userId = await currentUserId()
+      let logoPath: string | null = null
+      const uploadedScreenshots: string[] = []
+      try {
+        if (input.logo) {
+          logoPath = await upload('product-logos', input.logo, userId)
+          checkVoid(await supabase.rpc('set_product_logo', { p_product_id: data.id, p_logo_path: logoPath }))
+        }
+        if (input.screenshots?.length) {
+          for (const shot of input.screenshots) uploadedScreenshots.push(await upload('product-screenshots', shot, userId))
+          checkVoid(
+            await supabase.rpc('set_product_screenshots', {
+              p_product_id: data.id,
+              p_screenshots: uploadedScreenshots.map((key) => ({ object_key: key })),
+            }),
+          )
+        }
+      } catch (caught) {
+        if (logoPath) await removeFile('product-logos', logoPath)
+        for (const key of uploadedScreenshots) await removeFile('product-screenshots', key)
+        await supabase.from('products').delete().eq('id', data.id)
+        throw caught
       }
+
       if (input.tags.length > 0) {
         try {
-          check(await supabase.rpc('set_product_tags', { p_product_id: data.id, p_slugs: input.tags }))
+          checkVoid(await supabase.rpc('set_product_tags', { p_product_id: data.id, p_slugs: input.tags }))
         } catch (caught) {
           await supabase.from('products').delete().eq('id', data.id)
-          await removeFile('product-logos', logoPath)
+          if (logoPath) await removeFile('product-logos', logoPath)
+          for (const key of uploadedScreenshots) await removeFile('product-screenshots', key)
           throw caught
         }
       }
-      return (await maybe(await supabase.from('products').select(PRODUCT_SELECT).eq('id', data.id).maybeSingle<ProductRow>()))
-        ? toProduct(check(await supabase.from('products').select(PRODUCT_SELECT).eq('id', data.id).single<ProductRow>()))
-        : toProduct(data)
+
+      return toProduct(
+        check(await supabase.from('products').select(PRODUCT_SELECT).eq('id', data.id).single<ProductRow>()),
+      )
     },
 
     async deleteProduct(productId) {
+      const screenshots = check(
+        await supabase.from('product_screenshots').select('object_key').eq('product_id', productId).returns<{ object_key: string }[]>(),
+      )
       const rows = check(
         await supabase.from('products').delete().eq('id', productId).select('id, logo_path').returns<{ id: string; logo_path: string | null }[]>(),
       )
       if (rows.length === 0) throw new ApiError('not_authorized')
       await removeFile('product-logos', rows[0]!.logo_path)
+      for (const shot of screenshots) await removeFile('product-screenshots', shot.object_key)
     },
 
     async setProductTags(productId, slugs) {
-      check(await supabase.rpc('set_product_tags', { p_product_id: productId, p_slugs: slugs }))
+      checkVoid(await supabase.rpc('set_product_tags', { p_product_id: productId, p_slugs: slugs }))
+    },
+
+    async adminUpdateProduct(input) {
+      check(
+        await supabase.rpc('admin_update_product', {
+          p_product_id: input.id,
+          p_name: input.name.trim(),
+          p_tagline: input.tagline.trim(),
+          p_description: input.description.trim(),
+          p_website_url: input.websiteUrl.trim(),
+          p_category_id: input.categoryId,
+        }),
+      )
+    },
+
+    async setProductLogo(productId, logo) {
+      const userId = await currentUserId()
+      const path = await upload('product-logos', logo, userId)
+      try {
+        checkVoid(await supabase.rpc('set_product_logo', { p_product_id: productId, p_logo_path: path }))
+      } catch (caught) {
+        await removeFile('product-logos', path)
+        throw caught
+      }
+    },
+
+    async setProductScreenshots(productId, input) {
+      const userId = await currentUserId()
+      const added: string[] = []
+      try {
+        for (const file of input.add) added.push(await upload('product-screenshots', file, userId))
+        const keep = (input.keep ?? []).map((k) => k.key)
+        const removed = await supabase
+          .from('product_screenshots')
+          .select('object_key')
+          .eq('product_id', productId)
+          .returns<{ object_key: string }[]>()
+        const existing = (removed.data ?? []).map((r) => r.object_key)
+        const merged = [...keep, ...added]
+          checkVoid(
+            await supabase.rpc('set_product_screenshots', {
+            p_product_id: productId,
+            p_screenshots: merged.map((key) => ({ object_key: key })),
+          }),
+        )
+        for (const key of existing) {
+          if (!merged.includes(key)) await removeFile('product-screenshots', key)
+        }
+      } catch (caught) {
+        for (const key of added) await removeFile('product-screenshots', key)
+        throw caught
+      }
     },
 
     async listDailyProducts({ date, page }) {
@@ -527,7 +644,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     },
 
     async recordProductView(productId, viewerKey) {
-      check(await supabase.rpc('record_product_view', { p_product_id: productId, p_viewer_key: viewerKey }))
+      checkVoid(await supabase.rpc('record_product_view', { p_product_id: productId, p_viewer_key: viewerKey }))
     },
 
     async listMySavedProductIds(productIds) {

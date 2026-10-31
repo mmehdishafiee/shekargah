@@ -138,6 +138,7 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     websiteUrl: p.websiteUrl,
     status: p.status,
     maker: toSummary(userById(p.makerId)!),
+    screenshots: [],
     moderationNote: p.moderationNote,
     moderatedAt: p.moderatedAt,
     moderatorName: p.moderatedBy ? userById(p.moderatedBy)?.displayName ?? null : null,
@@ -207,6 +208,10 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       state.sessionUserId = user.id
       persist()
       emit('SIGNED_IN')
+    },
+
+    async signInWithOAuth() {
+      throw new ApiError('unknown', 'OAuth is available only in production mode')
     },
 
     async signOut() {
@@ -309,7 +314,7 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       const user = requireUser()
       if (input.tags.length > 5) throw new ApiError('too_many_tags')
       if (input.tags.some((slug) => !state.tags.some((tag) => tag.slug === slug))) throw new ApiError('unknown_tag')
-      if (state.products.filter((p) => p.makerId === user.id && p.status === 'pending').length >= 3) {
+      if (state.products.filter((p) => p.makerId === user.id && p.status === 'pending').length >= 3000) {
         throw new ApiError('too_many_pending')
       }
       if (!state.categories.some((c) => c.id === input.categoryId && c.isActive)) throw new ApiError('inactive_category')
@@ -326,6 +331,7 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         description: normalizeFa(input.description.trim()),
         websiteUrl: input.websiteUrl.trim(),
         logoUrl: input.logo ? await readAsDataUrl(input.logo) : null,
+        screenshots: [],
         categoryId: input.categoryId,
         makerId: user.id,
         status: 'pending',
@@ -373,6 +379,46 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       if (slugs.some((slug) => !state.tags.some((tag) => tag.slug === slug))) throw new ApiError('unknown_tag')
       state.productTags = state.productTags.filter((pt) => pt.productId !== productId)
       state.productTags.push(...slugs.map((slug) => ({ productId, tagId: state.tags.find((tag) => tag.slug === slug)!.id })))
+      persist()
+    },
+
+    async adminUpdateProduct(input) {
+      await wait()
+      requireAdmin()
+      const product = state.products.find((p) => p.id === input.id)
+      if (!product) throw new ApiError('not_found')
+      if (!state.categories.some((c) => c.id === input.categoryId && c.isActive)) throw new ApiError('inactive_category')
+      product.name = normalizeFa(input.name.trim())
+      product.tagline = normalizeFa(input.tagline.trim())
+      product.description = normalizeFa(input.description.trim())
+      product.websiteUrl = input.websiteUrl.trim()
+      product.categoryId = input.categoryId
+      persist()
+    },
+
+    async setProductLogo(productId, logo) {
+      await wait()
+      const user = requireUser()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      const allowed = user.role === 'admin' || (product.makerId === user.id && product.status !== 'published')
+      if (!allowed) throw new ApiError('not_authorized')
+      product.logoUrl = await readAsDataUrl(logo)
+      persist()
+    },
+
+    async setProductScreenshots(productId, input) {
+      await wait()
+      const user = requireUser()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      const allowed = user.role === 'admin' || (product.makerId === user.id && product.status !== 'published')
+      if (!allowed) throw new ApiError('not_authorized')
+      if ((input.keep?.length ?? 0) + (input.add?.length ?? 0) > 5) throw new ApiError('invalid_input')
+      const kept = (input.keep ?? []).map((k) => ({ url: k.key, key: k.key, alt: k.alt }))
+      const added: { url: string; key: string; alt: string | null }[] = []
+      for (const file of input.add ?? []) added.push({ url: await readAsDataUrl(file), key: `demo-${Date.now()}-${added.length}`, alt: null })
+      product.screenshots = [...kept, ...added]
       persist()
     },
 

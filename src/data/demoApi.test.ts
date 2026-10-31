@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { tehranDateLabel } from '@/lib/engagement'
 import { createDemoApi } from './demoApi'
 import { DEMO_ADMIN_EMAIL, DEMO_USER_EMAIL, createDemoState } from './demoSeed'
 import type { ShekargahApi } from './types'
@@ -13,6 +14,7 @@ const input = {
   categoryId: 'c-01',
   tags: [] as string[],
   logo: null,
+  screenshots: [] as File[],
 }
 
 beforeEach(() => {
@@ -197,9 +199,11 @@ describe('demo backend mirrors the database rules', () => {
   })
 
   it('returns only products published on the requested day', async () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const daily = await api.listDailyProducts({ date: today, page: 0 })
-    expect(daily.items.every((p) => p.publishedAt?.startsWith(today))).toBe(true)
+    const published = (await api.listProducts({ sort: 'newest', page: 0 })).items[0]!
+    const target = tehranDateLabel(new Date(published.publishedAt!))
+    const daily = await api.listDailyProducts({ date: target, page: 0 })
+    expect(daily.items.length).toBeGreaterThan(0)
+    expect(daily.items.every((p) => p.publishedAt && tehranDateLabel(new Date(p.publishedAt)) === target)).toBe(true)
     const other = await api.listDailyProducts({ date: '2000-01-01', page: 0 })
     expect(other.items).toHaveLength(0)
   })

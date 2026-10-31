@@ -3,7 +3,6 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { MailCheck } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { DEMO_ADMIN_EMAIL, DEMO_USER_EMAIL } from '@/data/demoSeed'
 import { errorMessage } from '@/lib/errors'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { compact, hasErrors, validateDisplayName, validateEmail, validatePassword } from '@/lib/validation'
@@ -69,6 +68,18 @@ export function LoginPage() {
     }
   }
 
+  const submitOAuth = async (provider: 'google' | 'github') => {
+    setBusy(true)
+    setError(null)
+    try {
+      sessionStorage.setItem('shekargah:auth-target', target)
+      await api.signInWithOAuth(provider, `${window.location.origin}/`)
+    } catch (caught) {
+      setError(caught)
+      setBusy(false)
+    }
+  }
+
   return (
     <AuthCard
       title="ورود به شکارگاه"
@@ -82,14 +93,21 @@ export function LoginPage() {
         </>
       }
     >
-      {api.mode === 'demo' && (
-        <div className="mb-5">
-          <Notice title="ورود در حالت نمایشی">
-            هر رمزی پذیرفته می‌شود. برای دیدن پنل مدیریت با <bdi className="ltr font-semibold">{DEMO_ADMIN_EMAIL}</bdi> و برای حساب
-            عادی با <bdi className="ltr font-semibold">{DEMO_USER_EMAIL}</bdi> وارد شو.
-          </Notice>
+      <div className="mb-5 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Button type="button" variant="secondary" loading={busy} onClick={() => void submitOAuth('google')}>
+            ورود با گوگل
+          </Button>
+          <Button type="button" variant="secondary" loading={busy} onClick={() => void submitOAuth('github')}>
+            ورود با گیت‌هاب
+          </Button>
         </div>
-      )}
+        <div className="flex items-center gap-3 text-xs text-ink-muted" aria-hidden>
+          <span className="h-px flex-1 bg-line" />
+          یا با ایمیل وارد شو
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      </div>
       <form onSubmit={submit} noValidate className="space-y-4">
         <Field label="ایمیل" error={errors.email}>
           {(props) => (
@@ -256,7 +274,6 @@ export function ForgotPasswordPage() {
       {sent ? (
         <Notice tone="success" title="درخواست ثبت شد">
           اگر حسابی با این ایمیل وجود داشته باشد، لینک بازیابی تا چند دقیقه‌ی دیگر می‌رسد.
-          {api.mode === 'demo' && ' در حالت نمایشی ایمیلی فرستاده نمی‌شود.'}
         </Notice>
       ) : (
         <form onSubmit={submit} noValidate className="space-y-4">

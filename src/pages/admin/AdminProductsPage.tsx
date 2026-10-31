@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, ExternalLink, Inbox, Undo2, X } from 'lucide-react'
+import { Check, ExternalLink, Inbox, Pencil, Undo2, X } from 'lucide-react'
 import { useApi } from '@/data/api'
 import { useAdminProducts } from '@/data/queries'
 import type { ModerationAction, Product, ProductStatus } from '@/data/types'
@@ -10,7 +10,8 @@ import { productPath, profilePath } from '@/lib/paths'
 import { hostnameOf } from '@/lib/text'
 import { LIMITS } from '@/lib/validation'
 import { ProductLogo } from '@/components/product/ProductLogo'
-import { Button } from '@/components/ui/Button'
+import { TagChips } from '@/components/product/TagChips'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorState, ProductRowSkeleton } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
@@ -104,6 +105,11 @@ function ModerationCard({ product }: { product: Product }) {
             {product.category && <span className="text-[13px] text-ink-muted">{product.category.name}</span>}
           </div>
           <p className="mt-0.5 text-sm text-ink-muted">{product.tagline}</p>
+          {product.tags.length > 0 && (
+            <div className="mt-2">
+              <TagChips tags={product.tags} />
+            </div>
+          )}
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-muted">
             <span>
               سازنده:{' '}
@@ -140,6 +146,14 @@ function ModerationCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <ButtonLink
+          to={`/admin/products/${product.slug}/edit`}
+          variant="secondary"
+          size="sm"
+          icon={<Pencil size={15} strokeWidth={1.75} />}
+        >
+          ویرایش
+        </ButtonLink>
         {product.status === 'pending' && (
           <>
             <Button variant="secondary" size="sm" icon={<X size={16} strokeWidth={1.75} />} onClick={() => setAction('reject')}>

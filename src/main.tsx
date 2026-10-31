@@ -5,15 +5,21 @@ import { RouterProvider } from 'react-router/dom'
 import { createDefaultApi } from '@/data/api'
 import { Providers } from './Providers'
 import { routes } from './routes'
+import { ConfigErrorScreen } from '@/components/ConfigErrorScreen'
 import './index.css'
 
-const api = await createDefaultApi()
 const router = createBrowserRouter(routes)
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Providers api={api}>
-      <RouterProvider router={router} />
-    </Providers>
-  </StrictMode>,
-)
+const root = createRoot(document.getElementById('root')!)
+try {
+  const api = await createDefaultApi()
+  root.render(
+    <StrictMode>
+      <Providers api={api}>
+        <RouterProvider router={router} />
+      </Providers>
+    </StrictMode>,
+  )
+} catch (error) {
+  root.render(<ConfigErrorScreen error={error} />)
+}

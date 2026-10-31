@@ -24,6 +24,7 @@ export interface DemoProduct {
   description: string
   websiteUrl: string
   logoUrl: string | null
+  screenshots: { url: string; key: string; alt: string | null }[]
   categoryId: string
   makerId: string
   status: ProductStatus
@@ -391,6 +392,7 @@ export function createDemoState(now: Date = new Date()): DemoState {
         description,
         websiteUrl: `https://example.com/${index + 1}`,
         logoUrl: null,
+        screenshots: [],
         categoryId: CATEGORY_IDS[category]!,
         makerId: maker,
         status,

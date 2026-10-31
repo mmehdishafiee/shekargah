@@ -4,6 +4,7 @@ import type { ProductSummary } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
 import { ProductLogo } from './ProductLogo'
+import { SaveButton } from './SaveButton'
 import { TagChips } from './TagChips'
 import { ViewCount } from './ViewCount'
 import { VoteButton } from './VoteButton'
@@ -11,10 +12,11 @@ import { VoteButton } from './VoteButton'
 interface ProductRowProps {
   product: ProductSummary
   voted: boolean
+  saved?: boolean
   rank?: number
 }
 
-export function ProductRow({ product, voted, rank }: ProductRowProps) {
+export function ProductRow({ product, voted, saved = false, rank }: ProductRowProps) {
   return (
     <article className="group relative flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-sunken/70 sm:px-4">
       <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} />
@@ -52,13 +54,16 @@ export function ProductRow({ product, voted, rank }: ProductRowProps) {
           <ViewCount count={product.viewsCount} />
         </div>
       </div>
-      <VoteButton
-        productId={product.id}
-        productName={product.name}
-        slug={product.slug}
-        votesCount={product.votesCount}
-        voted={voted}
-      />
+      <div className="flex shrink-0 flex-col items-center gap-2">
+        <SaveButton productId={product.id} productName={product.name} saved={saved} />
+        <VoteButton
+          productId={product.id}
+          productName={product.name}
+          slug={product.slug}
+          votesCount={product.votesCount}
+          voted={voted}
+        />
+      </div>
     </article>
   )
 }
