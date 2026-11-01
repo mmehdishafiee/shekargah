@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router'
 import { RequireAdmin, RequireAuth } from '@/auth/guards'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AboutPage } from '@/pages/AboutPage'
+import { ContactPage, FaqPage, HelpPage, SponsorPage } from '@/pages/InfoPages'
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage, SignupPage } from '@/pages/AuthPages'
 import { DailyPage } from '@/pages/DailyPage'
 import { HomePage } from '@/pages/HomePage'
@@ -47,6 +48,8 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomePage /> },
       { path: 'today', element: <DailyPage /> },
       { path: 'leaderboard', element: <LeaderboardPage /> },
+      { path: 'leaderboard/:period', element: <LeaderboardPage /> },
+      { path: 'leaderboard/:period/:date', element: <LeaderboardPage /> },
       { path: 'trending', element: <TrendingPage /> },
       { path: 'topics', element: <TopicsPage /> },
       { path: 'collections', element: <CollectionsPage /> },
@@ -63,6 +66,10 @@ export const routes: RouteObject[] = [
       { path: 'products/:slug', element: <ProductPage /> },
       { path: 'u/:username', element: <ProfilePage /> },
       { path: 'about', element: <AboutPage /> },
+      { path: 'help', element: <HelpPage /> },
+      { path: 'faq', element: <FaqPage /> },
+      { path: 'contact', element: <ContactPage /> },
+      { path: 'sponsor', element: <SponsorPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },

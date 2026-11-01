@@ -414,7 +414,7 @@ export interface ShekargahApi {
   /** Top products of each recent day (the home discovery surface). */
   listDailyWinners(input: { days?: number; perDay?: number }): Promise<DailyGroup[]>
   /** Products ranked by votes received inside a window, not lifetime totals. */
-  listLeaderboard(input: { period: LeaderboardPeriod; page: number }): Promise<Page<RankedProduct>>
+  listLeaderboard(input: { period: LeaderboardPeriod; page: number; anchor?: string | null }): Promise<Page<RankedProduct>>
   /** Products with the fastest recent engagement. */
   listTrending(page: number): Promise<Page<RankedProduct>>
   recordProductView(productId: string, viewerKey: string): Promise<void>

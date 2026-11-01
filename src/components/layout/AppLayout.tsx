@@ -34,6 +34,9 @@ const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
       { to: '/companies', label: 'شرکت‌ها' },
       { to: '/blog', label: 'وبلاگ' },
       { to: '/about', label: 'درباره‌ی شکارگاه' },
+      { to: '/help', label: 'راهنما' },
+      { to: '/faq', label: 'سوالات متداول' },
+      { to: '/contact', label: 'تماس با ما' },
     ],
   },
   {
@@ -42,6 +45,7 @@ const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
       { to: '/submit', label: 'معرفی محصول' },
       { to: '/dashboard', label: 'داشبورد من' },
       { to: '/feed', label: 'فید شما' },
+      { to: '/sponsor', label: 'حامی شکارگاه' },
     ],
   },
 ]

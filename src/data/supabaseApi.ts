@@ -824,14 +824,15 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       return [...groups.values()]
     },
 
-    async listLeaderboard({ period, page }) {
-      const rows = check(
-        await supabase.rpc('list_leaderboard', {
-          p_period: period,
-          p_limit: PAGE_SIZE,
-          p_offset: page * PAGE_SIZE,
-        }),
-      ) as RankedRow[]
+    async listLeaderboard({ period, page, anchor }) {
+      const args = { p_period: period, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }
+      let response = await supabase.rpc('list_leaderboard', anchor ? { ...args, p_anchor: anchor } : args)
+      // Until migration 20261102000020 is applied the four-argument overload is
+      // missing; fall back to the rolling window so dated links never break.
+      if (anchor && response.error && (response.error.code === 'PGRST202' || response.error.message?.includes('list_leaderboard'))) {
+        response = await supabase.rpc('list_leaderboard', args)
+      }
+      const rows = check(response) as RankedRow[]
       const total = Number(rows[0]?.total_count ?? 0)
       const items = rows.map((row) => toRanked(row, publicUrl))
       return { items, total, hasMore: page * PAGE_SIZE + items.length < total }

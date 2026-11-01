@@ -6,7 +6,7 @@
 
 const SITE = 'https://shekargah.mmehdi.ir'
 
-const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about']
+const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor']
 
 function escapeXml(value) {
   return value.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char])

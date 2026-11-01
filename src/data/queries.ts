@@ -9,7 +9,7 @@ export const keys = {
   feed: (query: Omit<ProductQuery, 'page'>) => ['feed', query] as const,
   product: (slug: string) => ['product', slug] as const,
   dailyProducts: (date: string | null) => ['daily-products', date] as const,
-  leaderboard: (period: LeaderboardPeriod) => ['leaderboard', period] as const,
+  leaderboard: (period: LeaderboardPeriod, anchor: string | null = null) => ['leaderboard', period, anchor] as const,
   trending: () => ['trending'] as const,
   votes: (userId: string | null, ids: string[]) => ['votes', userId, ids] as const,
   savedIds: (userId: string | null, ids: string[]) => ['saved', userId, ids] as const,
@@ -78,11 +78,11 @@ export function useDailyProducts(date: string | null) {
   })
 }
 
-export function useLeaderboard(period: LeaderboardPeriod) {
+export function useLeaderboard(period: LeaderboardPeriod, anchor: string | null = null) {
   const api = useApi()
   return useInfiniteQuery({
-    queryKey: keys.leaderboard(period),
-    queryFn: ({ pageParam }) => api.listLeaderboard({ period, page: pageParam }),
+    queryKey: keys.leaderboard(period, anchor),
+    queryFn: ({ pageParam }) => api.listLeaderboard({ period, page: pageParam, anchor }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
     placeholderData: keepPreviousData,
