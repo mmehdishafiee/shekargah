@@ -94,7 +94,7 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
         queryClient.invalidateQueries({ queryKey: ['feed'] }),
       ])
       toast.success(`«${values.name}» به‌روزرسانی شد.`)
-      navigate(productPath(values.name))
+      navigate(productPath(product.slug))
     },
   })
 

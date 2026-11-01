@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pencil, ShieldQuestion } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
+import { useEditRequests } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { errorMessage } from '@/lib/errors'
 import { productPath } from '@/lib/paths'
@@ -22,6 +23,10 @@ export function ProductActionsExtra({ product }: { product: Product }) {
   const claimable = product.creditRole === 'hunter' && !product.makerCredit
   const [suggesting, setSuggesting] = useState(false)
   const [claiming, setClaiming] = useState(false)
+  const requests = useEditRequests('pending')
+  const myPending =
+    Boolean(session) &&
+    (requests.data ?? []).some((request) => request.productId === product.id && request.requester.id === session?.userId)
 
   const requireLogin = () => navigate('/login', { state: { from: location.pathname } })
 
@@ -37,7 +42,13 @@ export function ProductActionsExtra({ product }: { product: Product }) {
         </Link>
       )}
 
-      {!isOwner && (
+      {!isOwner && myPending && (
+        <span className="inline-flex h-9 items-center rounded-control border border-line bg-sunken px-3 text-[13px] font-medium text-ink-muted">
+          پیشنهاد شما در انتظار بررسی است
+        </span>
+      )}
+
+      {!isOwner && !myPending && (
         <Button
           variant="secondary"
           size="sm"
