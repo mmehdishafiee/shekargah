@@ -6,7 +6,7 @@ import { errorMessage } from '@/lib/errors'
 import { validateEmail } from '@/lib/validation'
 import { Button } from '@/components/ui/Button'
 
-/** Newsletter signup used in the footer. Idempotent and silent about duplicates. */
+/** Newsletter signup used in the page sidebar. Idempotent and silent about duplicates. */
 export function NewsletterSignup() {
   const api = useApi()
   const [email, setEmail] = useState('')
@@ -14,7 +14,7 @@ export function NewsletterSignup() {
   const [done, setDone] = useState(false)
 
   const mutation = useMutation({
-    mutationFn: (value: string) => api.subscribeNewsletter({ email: value, source: 'footer' }),
+    mutationFn: (value: string) => api.subscribeNewsletter({ email: value, source: 'sidebar' }),
     onSuccess: () => {
       setDone(true)
       setEmail('')

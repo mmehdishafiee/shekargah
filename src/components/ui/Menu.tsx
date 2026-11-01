@@ -7,11 +7,14 @@ interface MenuProps {
   triggerClassName?: string
   /** Which edge the panel is anchored to. */
   align?: 'start' | 'end'
+  /** Open on pointer hover instead of requiring a click (used by the header). */
+  hover?: boolean
 }
 
 /** Small disclosure menu: closes on outside click, Escape and item selection. */
-export function Menu({ label, trigger, children, triggerClassName = '', align = 'end' }: MenuProps) {
+export function Menu({ label, trigger, children, triggerClassName = '', align = 'end', hover = false }: MenuProps) {
   const [open, setOpen] = useState(false)
+  const closeTimer = useRef<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
 
@@ -31,8 +34,33 @@ export function Menu({ label, trigger, children, triggerClassName = '', align = 
     }
   }, [open])
 
+  const cancelClose = () => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+  const scheduleClose = () => {
+    if (!hover) return
+    cancelClose()
+    // A short delay keeps the menu usable while the pointer travels to it.
+    closeTimer.current = window.setTimeout(() => setOpen(false), 120)
+  }
+
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className="relative"
+      onMouseEnter={() => {
+        if (!hover) return
+        cancelClose()
+        setOpen(true)
+      }}
+      onMouseLeave={scheduleClose}
+      onFocus={() => {
+        if (hover) setOpen(true)
+      }}
+    >
       <button
         type="button"
         aria-label={label}

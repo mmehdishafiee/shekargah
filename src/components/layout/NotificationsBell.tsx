@@ -15,7 +15,7 @@ export function NotificationsBell() {
     >
       <Bell size={19} strokeWidth={1.75} aria-hidden />
       {count > 0 && (
-        <span className="absolute -end-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold leading-4 text-white">
+        <span className="absolute -end-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-brand-600 px-1 text-[10px] font-bold leading-4 text-on-brand">
           {count > 99 ? '۹۹+' : new Intl.NumberFormat('fa-IR').format(count)}
         </span>
       )}

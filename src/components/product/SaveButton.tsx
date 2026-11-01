@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bookmark } from 'lucide-react'
+import { Bookmark, BookmarkCheck } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { errorMessage, isApiError } from '@/lib/errors'
@@ -53,9 +53,13 @@ export function SaveButton({ productId, productName, saved, variant = 'box' }: S
     mutation.mutate(next)
   }
 
+  const label = isSaved ? `حذف ${productName} از ذخیره‌شده‌ها` : `ذخیره‌ی ${productName}`
+
+  // The saved state must be obvious at a glance: filled icon, solid brand
+  // background and a label that says what the current state is.
   const tone = isSaved
-    ? 'border-brand-600 bg-brand-50 text-brand-700'
-    : 'border-line-strong bg-surface text-ink hover:border-brand-600 hover:text-brand-700'
+    ? 'border-brand-600 bg-brand-600 text-on-brand shadow-card'
+    : 'border-line-strong bg-surface text-ink-muted hover:border-brand-600 hover:text-brand-700'
 
   if (variant === 'wide') {
     return (
@@ -63,11 +67,12 @@ export function SaveButton({ productId, productName, saved, variant = 'box' }: S
         type="button"
         onClick={onClick}
         aria-pressed={isSaved}
-        aria-label={isSaved ? `حذف ${productName} از ذخیره‌شده‌ها` : `ذخیره‌ی ${productName}`}
-        className={`inline-flex h-11 items-center gap-2 rounded-control border-2 px-5 text-sm font-bold transition-colors ${tone}`}
+        aria-label={label}
+        title={label}
+        className={`inline-flex h-11 items-center gap-2 rounded-control border-2 px-5 text-sm font-bold transition-all active:scale-[0.97] ${tone}`}
       >
-        <Bookmark size={18} strokeWidth={2} aria-hidden />
-        {isSaved ? 'ذخیره شده' : 'ذخیره کن'}
+        {isSaved ? <BookmarkCheck size={18} strokeWidth={2.2} aria-hidden /> : <Bookmark size={18} strokeWidth={2} aria-hidden />}
+        {isSaved ? 'ذخیره شد' : 'ذخیره کن'}
       </button>
     )
   }
@@ -77,10 +82,11 @@ export function SaveButton({ productId, productName, saved, variant = 'box' }: S
       type="button"
       onClick={onClick}
       aria-pressed={isSaved}
-      aria-label={isSaved ? `حذف ${productName} از ذخیره‌شده‌ها` : `ذخیره‌ی ${productName}`}
-      className={`relative z-10 inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border-2 transition-colors ${tone}`}
+      aria-label={label}
+      title={isSaved ? 'ذخیره شده — برای برداشتن کلیک کن' : 'ذخیره کن'}
+      className={`relative z-10 inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border-2 transition-all active:scale-95 ${tone}`}
     >
-      <Bookmark size={17} strokeWidth={isSaved ? 2.3 : 1.75} aria-hidden />
+      {isSaved ? <BookmarkCheck size={18} strokeWidth={2.3} aria-hidden /> : <Bookmark size={17} strokeWidth={1.75} aria-hidden />}
     </button>
   )
 }

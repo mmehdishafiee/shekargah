@@ -4,7 +4,6 @@ import { useAuth } from '@/auth/useAuth'
 import { env } from '@/lib/env'
 import { LogoMark } from '@/components/brand/Logo'
 import { Header } from './Header'
-import { NewsletterSignup } from './NewsletterSignup'
 import { ThemeToggle } from './ThemeToggle'
 
 const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
@@ -22,7 +21,7 @@ const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
     title: 'موضوع‌ها',
     links: [
       { to: '/topics', label: 'همه‌ی موضوع‌ها' },
-      { to: '/?category=productivity', label: 'بهرهوری' },
+      { to: '/?category=productivity', label: 'بهره‌وری' },
       { to: '/?category=ai', label: 'هوش مصنوعی' },
       { to: '/?category=open-source', label: 'متن‌باز' },
       { to: '/?category=fintech', label: 'مالی و پرداخت' },
@@ -60,7 +59,6 @@ function Footer() {
             <p className="text-[13px] leading-7 text-ink-muted">
               ویترین محصولات تازه‌ی سازندگان ایرانی. هر روز محصول تازه کشف کن، به بهترین‌ها رأی بده و محصول خودت را معرفی کن.
             </p>
-            <NewsletterSignup />
             <div className="flex items-center gap-3 pt-1">
               <ThemeToggle />
               <span className="text-xs text-ink-faint">حالت نمایش</span>

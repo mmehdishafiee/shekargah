@@ -9,6 +9,7 @@ import { useDocumentMeta, websiteSchema } from '@/lib/useDocumentMeta'
 import { profilePath } from '@/lib/paths'
 import { ProductRow } from '@/components/product/ProductRow'
 import { Avatar } from '@/components/ui/Avatar'
+import { NewsletterSignup } from '@/components/layout/NewsletterSignup'
 import { SponsorCard } from '@/components/product/SponsorCard'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { EmptyState, ErrorState, ProductRowSkeleton } from '@/components/ui/Feedback'
@@ -21,7 +22,7 @@ const SORTS: { value: SortOrder; label: string }[] = [
 
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-    active ? 'border-ink bg-ink text-white' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
+    active ? 'border-ink bg-ink text-canvas' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
   }`
 
 export function HomePage() {
@@ -290,6 +291,9 @@ function Sidebar({
   const { session } = useAuth()
   return (
     <aside className="mt-8 space-y-4 lg:mt-[4.25rem]">
+      <div className={`${cardClass} p-5`}>
+        <NewsletterSignup />
+      </div>
       <div className={`${cardClass} p-5`}>
         <h2 className="text-base font-bold">محصولی ساخته‌ای؟</h2>
         <p className="mt-1.5 text-sm text-ink-muted">

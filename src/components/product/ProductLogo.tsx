@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { hueFor, initial } from '@/lib/text'
 
 interface ProductLogoProps {
@@ -27,16 +28,14 @@ export function ProductLogo({ name, seed, url, size = 56 }: ProductLogoProps) {
     <span
       role="img"
       aria-label={`لوگوی ${name}`}
-      className="grid shrink-0 place-items-center font-extrabold"
+      className="pastel-fallback grid shrink-0 place-items-center font-extrabold"
       style={{
         width: size,
         height: size,
         borderRadius: radius,
         fontSize: Math.round(size * 0.44),
-        background: `hsl(${hue} 70% 94%)`,
-        color: `hsl(${hue} 50% 32%)`,
-        boxShadow: `inset 0 0 0 1px hsl(${hue} 40% 86%)`,
-      }}
+        '--h': hue,
+      } as CSSProperties}
     >
       {initial(name)}
     </span>

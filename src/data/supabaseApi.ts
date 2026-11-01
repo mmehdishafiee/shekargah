@@ -162,6 +162,7 @@ const PROFILE_SUMMARY = 'id, username, display_name, avatar_path'
 const PROFILE_FULL = `${PROFILE_SUMMARY}, bio, role, created_at, website_url, x_username, telegram_username, linkedin_username, github_username`
 const PRODUCT_SELECT = `id, slug, name, tagline, description, website_url, logo_path, status, votes_count,
   comments_count, views_count, rating_avg, rating_count, verified, published_at, created_at, moderation_note, moderated_at,
+  credit_role, maker_credit_id, maker_credit_name, hunter_id,
   category:categories(id, slug, name),
   company:companies(id, slug, name),
   maker:profiles!products_maker_id_fkey(${PROFILE_SUMMARY}),

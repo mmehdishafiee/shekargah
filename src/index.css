@@ -33,6 +33,16 @@
   --color-ink-muted: #565661;
   --color-ink-faint: #85858f;
 
+  /* Text that sits on top of a brand/accent fill. In light mode the accent is
+     dark, so labels are white; in dark mode the accent turns light, so labels
+     must flip to near-black to stay readable. */
+  --color-on-brand: #ffffff;
+
+  /* Inverted surface (toasts, selected chips): always the opposite of the page
+     so the content stays legible in both themes. */
+  --color-inverse: #18181b;
+  --color-inverse-ink: #f5f5f6;
+
   /* Feedback */
   --color-success-50: #ecfdf3;
   --color-success-700: #067647;
@@ -68,6 +78,11 @@
     --color-ink: #f4f4f5;
     --color-ink-muted: #a6a6b0;
     --color-ink-faint: #7c7c88;
+
+    /* Dark accents are light, so their labels must be dark. */
+    --color-on-brand: #1a1206;
+    --color-inverse: #2a2a31;
+    --color-inverse-ink: #f4f4f5;
 
     --color-brand-50: #2b1a11;
     --color-brand-100: #3d2315;
@@ -134,6 +149,22 @@
 
   ::selection {
     background: var(--color-brand-100);
+  }
+
+  /*
+   * Generated logo/avatar tiles. The hue is supplied per item via --h; the fill
+   * is pastel in light mode and deliberately darkened in dark mode so the tile
+   * does not glare against a dark surface.
+   */
+  .pastel-fallback {
+    background: hsl(var(--h, 30) 70% 94%);
+    color: hsl(var(--h, 30) 50% 32%);
+    box-shadow: inset 0 0 0 1px hsl(var(--h, 30) 40% 86%);
+  }
+  .dark .pastel-fallback {
+    background: hsl(var(--h, 30) 30% 20%);
+    color: hsl(var(--h, 30) 65% 80%);
+    box-shadow: inset 0 0 0 1px hsl(var(--h, 30) 25% 30%);
   }
 
   @media (prefers-reduced-motion: reduce) {

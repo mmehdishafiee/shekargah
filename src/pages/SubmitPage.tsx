@@ -155,7 +155,7 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
                       }
                       className={`rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                         selected
-                          ? 'border-ink bg-ink text-white'
+                          ? 'border-ink bg-ink text-canvas'
                           : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
                       }`}
                     >

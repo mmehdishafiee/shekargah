@@ -15,7 +15,7 @@ export function TagChips({ tags, activeSlug = null }: TagChipsProps) {
           key={tag.slug}
           to={`/?tag=${tag.slug}`}
           className={`relative z-10 rounded-md border px-2 py-0.5 text-[12px] font-medium transition-colors hover:border-line-strong hover:text-ink ${
-            activeSlug === tag.slug ? 'border-ink bg-ink text-white' : 'border-line bg-surface text-ink-muted'
+            activeSlug === tag.slug ? 'border-ink bg-ink text-canvas' : 'border-line bg-surface text-ink-muted'
           }`}
         >
           #{tag.name}

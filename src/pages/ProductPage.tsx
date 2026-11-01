@@ -14,6 +14,7 @@ import { CommentSection } from '@/components/product/CommentSection'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { RatingStars } from '@/components/product/RatingStars'
 import { ReviewSection } from '@/components/product/ReviewSection'
+import { ScreenshotGallery } from '@/components/product/ScreenshotGallery'
 import { VerifiedBadge } from '@/components/product/VerifiedBadge'
 import { BidiText } from '@/components/ui/BidiText'
 import { ReportDialog } from '@/components/product/ReportDialog'
@@ -159,17 +160,7 @@ function ProductDetails({ product }: { product: Product }) {
         {product.screenshots.length > 0 && (
           <section aria-label="اسکرین‌شات‌ها" className={`${cardClass} p-5 sm:p-6`}>
             <h2 className="mb-4 text-sm font-bold text-ink-muted">اسکرین‌شات‌ها</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {product.screenshots.map((shot, index) => (
-                <img
-                  key={`${shot.url}-${index}`}
-                  src={shot.url}
-                  alt={shot.alt ?? `اسکرین‌شات ${product.name}`}
-                  loading="lazy"
-                  className="w-full rounded-lg border border-line object-cover"
-                />
-              ))}
-            </div>
+            <ScreenshotGallery shots={product.screenshots} productName={product.name} />
           </section>
         )}
 

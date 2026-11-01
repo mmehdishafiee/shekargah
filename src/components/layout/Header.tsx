@@ -48,7 +48,7 @@ function SearchForm({ className = '' }: { className?: string }) {
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="جست‌وجوی محصول، موضوع یا سازنده..."
-        className="h-10 w-full rounded-full border border-transparent bg-sunken ps-10 pe-4 text-sm text-ink placeholder:text-ink-muted transition-colors hover:border-line-strong focus:border-brand-600 focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-100"
+        className="h-10 w-full rounded-full border border-transparent bg-sunken ps-10 pe-4 text-sm text-ink placeholder:text-ink-muted transition-colors hover:border-line-strong focus:border-brand-600 focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-500/40"
       />
     </form>
   )
@@ -68,7 +68,7 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <>
-      <Menu label="محصولات" align="start" triggerClassName={navTriggerClass} trigger={<>محصولات<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
+      <Menu label="محصولات" hover align="start" triggerClassName={navTriggerClass} trigger={<>محصولات<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
         {(close) => (
           <>
             <Link to="/" onClick={() => after(close)} className={menuItemClass}>
@@ -90,7 +90,7 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </Menu>
 
-      <Menu label="موضوع‌ها" align="start" triggerClassName={navTriggerClass} trigger={<>موضوع‌ها<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
+      <Menu label="موضوع‌ها" hover align="start" triggerClassName={navTriggerClass} trigger={<>موضوع‌ها<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
         {(close) => (
           <>
             {hotTopics.map((topic) => (
@@ -106,7 +106,7 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </Menu>
 
-      <Menu label="جامعه" align="start" triggerClassName={navTriggerClass} trigger={<>جامعه<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
+      <Menu label="جامعه" hover align="start" triggerClassName={navTriggerClass} trigger={<>جامعه<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
         {(close) => (
           <>
             <Link to="/makers" onClick={() => after(close)} className={menuItemClass}>
@@ -126,7 +126,7 @@ function NavGroups({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </Menu>
 
-      <Menu label="برای سازندگان" align="start" triggerClassName={navTriggerClass} trigger={<>برای سازندگان<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
+      <Menu label="برای سازندگان" hover align="start" triggerClassName={navTriggerClass} trigger={<>برای سازندگان<ChevronDown size={14} strokeWidth={2} aria-hidden /></>}>
         {(close) => (
           <>
             <Link to="/submit" onClick={() => after(close)} className={menuItemClass}>

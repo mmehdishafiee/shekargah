@@ -144,7 +144,7 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
           {() => <div className="flex flex-wrap gap-2">
             {tags.data?.map((tag) => {
               const selected = values.selectedTags.includes(tag.slug)
-              return <button key={tag.id} type="button" aria-pressed={selected} onClick={() => setValues((v) => ({ ...v, selectedTags: selected ? v.selectedTags.filter((s) => s !== tag.slug) : [...v.selectedTags, tag.slug] }))} className={`rounded-full border px-3 py-1.5 text-sm ${selected ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted'}`}>#{tag.name}</button>
+              return <button key={tag.id} type="button" aria-pressed={selected} onClick={() => setValues((v) => ({ ...v, selectedTags: selected ? v.selectedTags.filter((s) => s !== tag.slug) : [...v.selectedTags, tag.slug] }))} className={`rounded-full border px-3 py-1.5 text-sm ${selected ? 'border-ink bg-ink text-canvas' : 'border-line text-ink-muted'}`}>#{tag.name}</button>
             })}
           </div>}
         </Field>

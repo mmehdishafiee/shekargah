@@ -58,6 +58,12 @@ export function ProfilePage() {
   const products = useMakerProducts(profile.data?.id)
   const published = products.data?.filter((p) => p.status === 'published') ?? []
   const unpublished = products.data?.filter((p) => p.status !== 'published') ?? []
+  // A member can both build products and discover other people's, so the two
+  // are counted and labelled separately.
+  const hunted = published.filter((p) => p.creditRole === 'hunter')
+  const made = published.filter((p) => p.creditRole === 'maker')
+  const [tab, setTab] = useState<'all' | 'made' | 'hunted'>('all')
+  const shown = tab === 'made' ? made : tab === 'hunted' ? hunted : published
   const votes = useMyVotes(published.map((p) => p.id))
   const saved = useMySavedIds(published.map((p) => p.id))
   useDocumentMeta(profile.data?.displayName ?? (profile.isSuccess ? 'کاربر پیدا نشد' : undefined), profile.data?.bio ?? undefined)
@@ -118,9 +124,32 @@ export function ProfilePage() {
 
       <section aria-labelledby="published-heading">
         <h2 id="published-heading" className="text-lg font-bold">
-          محصولات منتشرشده
-          {products.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(published.length)})</span>}
+          {tab === 'made' ? 'محصولاتی که ساخته' : tab === 'hunted' ? 'محصولاتی که شکار کرده' : 'فعالیت'}
+          {products.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(shown.length)})</span>}
         </h2>
+        {published.length > 0 && (
+          <div role="group" aria-label="نوع محصولات" className="mt-3 flex w-max gap-1 rounded-full bg-sunken p-1">
+            {(
+              [
+                ['all', `همه ${formatNumber(published.length)}`],
+                ['made', `ساخته ${formatNumber(made.length)}`],
+                ['hunted', `شکار ${formatNumber(hunted.length)}`],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={tab === value}
+                onClick={() => setTab(value)}
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                  tab === value ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className={`${cardClass} mt-4 p-1.5 sm:p-2`}>
           {products.isPending ? (
             <div className="flex justify-center py-10 text-ink-muted">
@@ -128,7 +157,7 @@ export function ProfilePage() {
             </div>
           ) : products.isError ? (
             <ErrorState error={products.error} onRetry={() => products.refetch()} />
-          ) : published.length === 0 ? (
+          ) : shown.length === 0 ? (
             <EmptyState
               icon={<Package size={22} strokeWidth={1.75} />}
               title="هنوز محصول منتشرشده‌ای ندارد"
@@ -136,7 +165,7 @@ export function ProfilePage() {
             />
           ) : (
             <ul>
-              {published.map((product) => (
+              {shown.map((product) => (
                 <li key={product.id}>
                   <ProductRow product={product} voted={votes.data?.has(product.id) ?? false} saved={saved.data?.has(product.id) ?? false} />
                 </li>
