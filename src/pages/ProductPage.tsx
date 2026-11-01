@@ -1,6 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import { CalendarDays, ExternalLink, Flag, Globe, PackageX, Rocket, Tag } from 'lucide-react'
+import {
+  ArrowBigUp,
+  CalendarDays,
+  ExternalLink,
+  Eye,
+  Flag,
+  Globe,
+  Info,
+  Images,
+  MessageSquare,
+  PackageX,
+  Rocket,
+  Star,
+  Tag,
+} from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
@@ -17,11 +31,11 @@ import { ReviewSection } from '@/components/product/ReviewSection'
 import { ScreenshotGallery } from '@/components/product/ScreenshotGallery'
 import { VerifiedBadge } from '@/components/product/VerifiedBadge'
 import { BidiText } from '@/components/ui/BidiText'
+import { NewsletterSignup } from '@/components/layout/NewsletterSignup'
 import { ReportDialog } from '@/components/product/ReportDialog'
 import { SaveButton } from '@/components/product/SaveButton'
 import { ShareButton } from '@/components/product/ShareButton'
 import { TagChips } from '@/components/product/TagChips'
-import { ViewCount } from '@/components/product/ViewCount'
 import { VoteButton } from '@/components/product/VoteButton'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -47,6 +61,20 @@ function ProductNotFound() {
       description="ممکن است نشانی اشتباه باشد، محصول هنوز منتشر نشده باشد یا از فهرست برداشته شده باشد."
       action={<ButtonLink to="/">دیدن محصولات دیگر</ButtonLink>}
     />
+  )
+}
+
+const sectionHeading = 'flex items-center gap-2 text-sm font-bold text-ink-muted'
+
+function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-ink-muted">{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[13px] font-bold leading-tight text-ink">{value}</span>
+        <span className="block text-[11px] text-ink-muted">{label}</span>
+      </span>
+    </div>
   )
 }
 
@@ -101,31 +129,47 @@ function ProductDetails({ product }: { product: Product }) {
           </Notice>
         )}
 
-        <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} size={80} />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-              <ViewCount count={product.viewsCount} />
+        <header className={`${cardClass} overflow-hidden`}>
+          <div className="h-24 bg-linear-to-l from-brand-100 via-brand-50 to-surface" aria-hidden />
+          <div className="p-5 pt-0 sm:p-6 sm:pt-0">
+            <div className="-mt-12 flex flex-col gap-5 sm:flex-row sm:items-start">
+              <span className="w-fit rounded-2xl bg-surface p-1.5 shadow-card ring-1 ring-line">
+                <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} size={80} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h1 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold leading-tight sm:text-[28px]">
+                  {product.name}
+                  {product.verified && <VerifiedBadge withLabel />}
+                </h1>
+                <p className="bidi mt-1.5 text-base text-ink-muted sm:text-lg">{product.tagline}</p>
+                {product.ratingCount > 0 && (
+                  <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
+                    <RatingStars value={product.ratingAvg} />
+                    <span className="font-semibold text-ink">{formatNumber(product.ratingAvg)}</span>
+                    <span>({formatNumber(product.ratingCount)} نقد)</span>
+                  </p>
+                )}
+                {product.tags.length > 0 && <div className="mt-3"><TagChips tags={product.tags} /></div>}
+              </div>
             </div>
-            <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-extrabold leading-tight sm:text-[28px]">
-              {product.name}
-              {product.verified && <VerifiedBadge withLabel />}
-            </h1>
-            <p className="bidi mt-1.5 text-base text-ink-muted sm:text-lg">{product.tagline}</p>
-            {product.ratingCount > 0 && (
-              <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
-                <RatingStars value={product.ratingAvg} />
-                <span className="font-semibold text-ink">{formatNumber(product.ratingAvg)}</span>
-                <span>({formatNumber(product.ratingCount)} نقد)</span>
-              </p>
-            )}
-            {product.tags.length > 0 && <div className="mt-3"><TagChips tags={product.tags} /></div>}
+
+            <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-line/70 pt-5 sm:grid-cols-4">
+              <Stat icon={<ArrowBigUp size={18} strokeWidth={1.75} aria-hidden />} label="رأی" value={formatNumber(product.votesCount)} />
+              <Stat icon={<MessageSquare size={18} strokeWidth={1.75} aria-hidden />} label="نظر" value={formatNumber(product.commentsCount)} />
+              <Stat icon={<Eye size={18} strokeWidth={1.75} aria-hidden />} label="بازدید" value={formatNumber(product.viewsCount)} />
+              <Stat
+                icon={<Star size={18} strokeWidth={1.75} aria-hidden />}
+                label={product.ratingCount > 0 ? `از ${formatNumber(product.ratingCount)} نقد` : 'امتیاز'}
+                value={product.ratingCount > 0 ? formatNumber(product.ratingAvg) : '—'}
+              />
+            </dl>
+
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a
                 href={product.websiteUrl}
                 target="_blank"
                 rel="noopener noreferrer nofollow ugc"
-                className={buttonClass('secondary', 'md', 'h-11 px-5')}
+                className={buttonClass('primary', 'md', 'h-11 px-5')}
               >
                 <ExternalLink size={18} strokeWidth={1.75} aria-hidden />
                 رفتن به وب‌سایت
@@ -153,16 +197,23 @@ function ProductDetails({ product }: { product: Product }) {
           </div>
         </header>
 
-        <section aria-label="توضیحات محصول" className={`${cardClass} p-5 sm:p-6`}>
-          <BidiText className="break-words text-[15px] leading-8" text={product.description} />
-        </section>
-
         {product.screenshots.length > 0 && (
-          <section aria-label="اسکرین‌شات‌ها" className={`${cardClass} p-5 sm:p-6`}>
-            <h2 className="mb-4 text-sm font-bold text-ink-muted">اسکرین‌شات‌ها</h2>
+          <section aria-label="تصاویر محصول" className={`${cardClass} p-5 sm:p-6`}>
+            <h2 className={`${sectionHeading} mb-4`}>
+              <Images size={16} strokeWidth={1.75} aria-hidden />
+              تصاویر محصول
+            </h2>
             <ScreenshotGallery shots={product.screenshots} productName={product.name} />
           </section>
         )}
+
+        <section aria-label="توضیحات محصول" className={`${cardClass} p-5 sm:p-6`}>
+          <h2 className={`${sectionHeading} mb-3`}>
+            <Info size={16} strokeWidth={1.75} aria-hidden />
+            درباره‌ی {product.name}
+          </h2>
+          <BidiText className="break-words text-[15px] leading-8" text={product.description} />
+        </section>
 
         {isPublished && (
           <div className={`${cardClass} p-5 sm:p-6`}>
@@ -175,7 +226,7 @@ function ProductDetails({ product }: { product: Product }) {
         </div>
       </article>
 
-      <aside className="mt-6 space-y-4 lg:mt-0">
+      <aside className="mt-6 space-y-4 lg:sticky lg:top-20 lg:mt-0 lg:self-start">
         <div className={`${cardClass} p-5`}>
           {product.creditRole === 'hunter' ? (
             <>
@@ -268,6 +319,10 @@ function ProductDetails({ product }: { product: Product }) {
             </dd>
           </div>
         </dl>
+
+        <div className={`${cardClass} p-5`}>
+          <NewsletterSignup />
+        </div>
 
         {session && isPublished && !isMaker && (
           <Button variant="ghost" size="sm" icon={<Flag size={15} strokeWidth={1.75} />} onClick={() => setReporting(true)}>

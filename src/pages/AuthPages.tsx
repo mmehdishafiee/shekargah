@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { MailCheck } from 'lucide-react'
+import { Check, MailCheck } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { errorMessage } from '@/lib/errors'
@@ -13,7 +13,13 @@ import { Notice, PageLoader } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
 import { cardClass } from '@/components/ui/styles'
 
-/** Shared shell for every auth screen: centred card, brand mark, quiet footer. */
+const PERKS = [
+  'هر روز محصول تازه‌ی سازندگان ایرانی را ببین',
+  'به بهترین‌ها رأی بده و نظر بنویس',
+  'محصول خودت را معرفی کن، به‌عنوان سازنده یا شکارچی',
+]
+
+/** Shared shell for every auth screen: brand story on one side, form on the other. */
 function AuthShell({
   title,
   subtitle,
@@ -26,35 +32,75 @@ function AuthShell({
   footer?: ReactNode
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[26rem] flex-col py-6 sm:py-12">
-      <div className="mb-7 text-center">
-        <Link to="/" className="inline-flex rounded-lg" aria-label="شکارگاه">
-          <Logo />
-        </Link>
-      </div>
+    <div className="mx-auto grid w-full max-w-4xl items-center gap-8 py-6 sm:py-10 lg:grid-cols-[1.05fr_1fr]">
+      <aside className="hidden lg:block">
+        <div className="relative overflow-hidden rounded-card border border-line bg-linear-to-br from-brand-100 via-brand-50 to-surface p-8">
+          <Link to="/" className="inline-flex rounded-lg" aria-label="شکارگاه">
+            <Logo />
+          </Link>
+          <h2 className="mt-8 text-[26px] font-extrabold leading-snug">
+            محصول‌های تازه‌ی ایرانی را کشف کن، رأی بده و خودت هم معرفی کن.
+          </h2>
+          <ul className="mt-6 space-y-3 text-sm leading-7 text-ink-muted">
+            {PERKS.map((perk) => (
+              <li key={perk} className="flex items-start gap-2">
+                <Check size={16} strokeWidth={2.25} className="mt-1.5 shrink-0 text-brand-700" aria-hidden />
+                {perk}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
 
-      <div className={`${cardClass} p-6 sm:p-8`}>
-        <h1 className="text-xl font-extrabold">{title}</h1>
-        {subtitle && <p className="mt-1.5 text-sm leading-6 text-ink-muted">{subtitle}</p>}
-        <div className="mt-6">{children}</div>
-      </div>
+      <div className="min-w-0">
+        <div className="mb-7 text-center lg:hidden">
+          <Link to="/" className="inline-flex rounded-lg" aria-label="شکارگاه">
+            <Logo />
+          </Link>
+        </div>
 
-      {footer && <div className="mt-6 text-center text-sm text-ink-muted">{footer}</div>}
+        <div className={`${cardClass} p-6 sm:p-8`}>
+          <h1 className="text-xl font-extrabold">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-sm leading-6 text-ink-muted">{subtitle}</p>}
+          <div className="mt-6">{children}</div>
+        </div>
+
+        {footer && <div className="mt-6 text-center text-sm text-ink-muted">{footer}</div>}
+      </div>
     </div>
   )
 }
 
 const linkClass = 'font-semibold text-brand-700 underline-offset-4 hover:underline'
 
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden>
+      <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
+      <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+    </svg>
+  )
+}
+
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden>
+      <path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-1.96c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.26 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z" />
+    </svg>
+  )
+}
+
 /** Social sign-in buttons, shown above the email form on the login screen. */
 function OAuthButtons({ onPick, busy }: { onPick: (provider: 'google' | 'github') => void; busy: boolean }) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <Button type="button" variant="secondary" loading={busy} onClick={() => onPick('google')}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button type="button" variant="secondary" loading={busy} icon={<GoogleIcon />} onClick={() => onPick('google')}>
           ورود با گوگل
         </Button>
-        <Button type="button" variant="secondary" loading={busy} onClick={() => onPick('github')}>
+        <Button type="button" variant="secondary" loading={busy} icon={<GitHubIcon />} onClick={() => onPick('github')}>
           ورود با گیت‌هاب
         </Button>
       </div>

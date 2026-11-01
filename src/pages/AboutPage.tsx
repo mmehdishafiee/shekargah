@@ -1,5 +1,6 @@
 import { Code2, ExternalLink, Globe, Heart, Package, Rocket, ShieldCheck, Sparkles } from 'lucide-react'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { formatNumber } from '@/lib/format'
 import { env } from '@/lib/env'
 import { ButtonLink } from '@/components/ui/Button'
 import { cardClass } from '@/components/ui/styles'
@@ -30,6 +31,12 @@ const ROLES = [
   },
 ]
 
+const STEPS = [
+  { title: 'حساب بساز', text: 'با ایمیل ثبت‌نام کن تا بتوانی رأی بدهی، ذخیره کنی و محصول معرفی کنی.' },
+  { title: 'کشف کن و رأی بده', text: 'محصولات تازه را ببین، به بهترین‌ها رأی بده و نظر و امتیاز بنویس.' },
+  { title: 'خودت هم معرفی کن', text: 'محصولی ساخته‌ای یا کشف کرده‌ای؟ معرفی‌اش کن تا بعد از بررسی منتشر شود.' },
+]
+
 export function AboutPage() {
   useDocumentMeta('درباره‌ی شکارگاه', 'شکارگاه چیست، متن‌باز بودنش، سازنده‌اش و قوانین ثبت محصول.')
   return (
@@ -42,6 +49,23 @@ export function AboutPage() {
           فهرست می‌ایستند.
         </p>
       </header>
+
+      <section className={`${cardClass} p-5 sm:p-7`}>
+        <h2 className="text-lg font-bold">شکارگاه چطور کار می‌کند؟</h2>
+        <ol className="mt-5 space-y-4">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-50 text-sm font-extrabold text-brand-700">
+                {formatNumber(index + 1)}
+              </span>
+              <div>
+                <p className="font-bold">{step.title}</p>
+                <p className="mt-0.5 text-[14px] leading-7 text-ink-muted">{step.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <section className={`${cardClass} p-5 sm:p-7`}>
         <h2 className="text-lg font-bold">سه نقش در شکارگاه</h2>
@@ -138,6 +162,25 @@ export function AboutPage() {
               است؛ استودیویی که روی ساخت محصولات وب سریع و بومی برای کاربران فارسی‌زبان کار می‌کند.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className={`${cardClass} p-5 sm:p-7`}>
+        <h2 className="text-lg font-bold">بیشتر بدان</h2>
+        <p className="mt-2 text-sm text-ink-muted">اگر پرسشی داری یا می‌خواهی از شکارگاه حمایت کنی، از این صفحه‌ها شروع کن.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <ButtonLink to="/help" variant="secondary">
+            راهنما
+          </ButtonLink>
+          <ButtonLink to="/faq" variant="secondary">
+            سوالات متداول
+          </ButtonLink>
+          <ButtonLink to="/contact" variant="secondary">
+            تماس با ما
+          </ButtonLink>
+          <ButtonLink to="/sponsor" variant="secondary">
+            حامی شکارگاه شوید
+          </ButtonLink>
         </div>
       </section>
     </div>

@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Package, Settings, Trash2, UserX } from 'lucide-react'
+import { AtSign, Briefcase, CalendarDays, Code2, Globe, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { AtSign, Briefcase, Code2, Globe, Send } from 'lucide-react'
 import { useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -20,10 +19,12 @@ import { EmptyState, ErrorState, PageLoader, Spinner } from '@/components/ui/Fee
 import { useToast } from '@/components/ui/toast'
 import { cardClass } from '@/components/ui/styles'
 
+type Tab = 'all' | 'made' | 'hunted'
+
 /** Social links a member chose to publish. */
 function ProfileLinks({ profile }: { profile: { websiteUrl: string | null; xUsername: string | null; telegramUsername: string | null; linkedinUsername: string | null; githubUsername: string | null } }) {
   const links = [
-    profile.websiteUrl && { href: profile.websiteUrl, label: 'وب‌سایت', icon: Globe, text: null },
+    profile.websiteUrl && { href: profile.websiteUrl, label: 'وبسایت', icon: Globe, text: null },
     profile.xUsername && { href: `https://x.com/${profile.xUsername}`, label: 'ایکس', icon: AtSign, text: `@${profile.xUsername}` },
     profile.telegramUsername && { href: `https://t.me/${profile.telegramUsername}`, label: 'تلگرام', icon: Send, text: `@${profile.telegramUsername}` },
     profile.linkedinUsername && { href: `https://www.linkedin.com/in/${profile.linkedinUsername}`, label: 'لینکدین', icon: Briefcase, text: profile.linkedinUsername },
@@ -51,6 +52,15 @@ function ProfileLinks({ profile }: { profile: { websiteUrl: string | null; xUser
   )
 }
 
+function ProfileStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-control bg-sunken px-3 py-2 text-center">
+      <span className="block text-lg font-extrabold leading-tight text-ink">{value}</span>
+      <span className="block text-[12px] text-ink-muted">{label}</span>
+    </div>
+  )
+}
+
 export function ProfilePage() {
   const { username = '' } = useParams()
   const profile = useProfileByUsername(username)
@@ -62,7 +72,8 @@ export function ProfilePage() {
   // are counted and labelled separately.
   const hunted = published.filter((p) => p.creditRole === 'hunter')
   const made = published.filter((p) => p.creditRole === 'maker')
-  const [tab, setTab] = useState<'all' | 'made' | 'hunted'>('all')
+  const totalVotes = published.reduce((sum, p) => sum + p.votesCount, 0)
+  const [tab, setTab] = useState<Tab>('all')
   const shown = tab === 'made' ? made : tab === 'hunted' ? hunted : published
   const votes = useMyVotes(published.map((p) => p.id))
   const saved = useMySavedIds(published.map((p) => p.id))
@@ -83,29 +94,59 @@ export function ProfilePage() {
   const user = profile.data
   const isSelf = session?.userId === user.id
 
+  const HEADINGS: Record<Tab, string> = {
+    all: 'فعالیت',
+    made: 'محصولات ساخته‌شده',
+    hunted: 'محصولات شکارشده',
+  }
+  const EMPTY: Record<Tab, string> = {
+    all: 'هنوز محصول منتشرشده‌ای ندارد',
+    made: 'هنوز محصولی نساخته است',
+    hunted: 'هنوز محصولی شکار نکرده است',
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <Avatar name={user.displayName} seed={user.id} url={user.avatarUrl} size={88} />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-extrabold">{user.displayName}</h1>
-          <p className="ltr mt-0.5 text-start text-sm text-ink-muted">@{user.username}</p>
-          {user.bio && (
-            <p className="bidi mt-3 max-w-prose whitespace-pre-line text-[15px]">
-              {user.bio}
-            </p>
-          )}
+      <header className={`${cardClass} overflow-hidden`}>
+        <div className="h-28 bg-linear-to-l from-brand-100 via-brand-50 to-surface" aria-hidden />
+        <div className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end">
+            <span className="w-fit rounded-full bg-surface p-1 shadow-card ring-1 ring-line">
+              <Avatar name={user.displayName} seed={user.id} url={user.avatarUrl} size={88} />
+            </span>
+            <div className="min-w-0 flex-1 pb-1">
+              <h1 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold">
+                {user.displayName}
+                {user.role === 'admin' && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-bold text-brand-700">
+                    <ShieldCheck size={13} strokeWidth={2} aria-hidden />
+                    مدیر
+                  </span>
+                )}
+              </h1>
+              <p className="ltr mt-0.5 text-start text-sm text-ink-muted">@{user.username}</p>
+            </div>
+            {isSelf && (
+              <ButtonLink to="/settings" variant="secondary" size="sm" icon={<Settings size={16} strokeWidth={1.75} aria-hidden />}>
+                ویرایش پروفایل
+              </ButtonLink>
+            )}
+          </div>
+
+          {user.bio && <p className="bidi mt-4 max-w-prose whitespace-pre-line text-[15px] leading-7">{user.bio}</p>}
           <ProfileLinks profile={user} />
+
+          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line/70 pt-4 sm:max-w-md">
+            <ProfileStat label="ساخته" value={formatNumber(made.length)} />
+            <ProfileStat label="شکار" value={formatNumber(hunted.length)} />
+            <ProfileStat label="رأی گرفته" value={formatNumber(totalVotes)} />
+          </div>
+
           <p className="mt-3 flex items-center gap-1.5 text-[13px] text-ink-muted">
             <CalendarDays size={15} strokeWidth={1.75} aria-hidden />
             عضو از {formatDate(user.createdAt)}
           </p>
         </div>
-        {isSelf && (
-          <ButtonLink to="/settings" variant="secondary" size="sm" icon={<Settings size={16} strokeWidth={1.75} aria-hidden />}>
-            ویرایش پروفایل
-          </ButtonLink>
-        )}
       </header>
 
       {isSelf && unpublished.length > 0 && (
@@ -123,10 +164,17 @@ export function ProfilePage() {
       )}
 
       <section aria-labelledby="published-heading">
-        <h2 id="published-heading" className="text-lg font-bold">
-          {tab === 'made' ? 'محصولاتی که ساخته' : tab === 'hunted' ? 'محصولاتی که شکار کرده' : 'فعالیت'}
-          {products.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(shown.length)})</span>}
-        </h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="published-heading" className="text-lg font-bold">
+            {HEADINGS[tab]}
+            {products.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(shown.length)})</span>}
+          </h2>
+          {isSelf && (
+            <ButtonLink to="/submit" size="sm" variant="secondary">
+              معرفی محصول
+            </ButtonLink>
+          )}
+        </div>
         {published.length > 0 && (
           <div role="group" aria-label="نوع محصولات" className="mt-3 flex w-max gap-1 rounded-full bg-sunken p-1">
             {(
@@ -160,8 +208,8 @@ export function ProfilePage() {
           ) : shown.length === 0 ? (
             <EmptyState
               icon={<Package size={22} strokeWidth={1.75} />}
-              title="هنوز محصول منتشرشده‌ای ندارد"
-              action={isSelf ? <ButtonLink to="/submit">معرفی اولین محصول</ButtonLink> : undefined}
+              title={EMPTY[tab]}
+              action={isSelf ? <ButtonLink to="/submit">معرفی محصول</ButtonLink> : undefined}
             />
           ) : (
             <ul>
