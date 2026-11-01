@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from './api'
 import type { LeaderboardPeriod, ProductQuery, ProductStatus } from './types'
@@ -19,6 +19,8 @@ export const keys = {
   makerProducts: (makerId: string, viewerId: string | null) => ['maker-products', makerId, viewerId] as const,
   adminProducts: (status: ProductStatus) => ['admin', 'products', status] as const,
   reports: (filter: 'open' | 'all') => ['admin', 'reports', filter] as const,
+  followCounts: (profileId: string) => ['follow-counts', profileId] as const,
+  isFollowing: (viewerId: string | null, profileId: string) => ['is-following', viewerId, profileId] as const,
 }
 
 export function useCategories(includeInactive = false) {
@@ -345,5 +347,44 @@ export function useDailyWinners(days = 7, perDay = 5) {
     queryKey: ['daily-winners', days, perDay],
     queryFn: () => api.listDailyWinners({ days, perDay }),
     staleTime: 2 * 60_000,
+  })
+}
+
+export function useFollowCounts(profileId: string | undefined) {
+  const api = useApi()
+  return useQuery({
+    queryKey: keys.followCounts(profileId ?? ''),
+    queryFn: () => api.followCounts(profileId as string),
+    enabled: Boolean(profileId),
+    staleTime: 30_000,
+  })
+}
+
+export function useIsFollowing(profileId: string | undefined) {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: keys.isFollowing(session?.userId ?? null, profileId ?? ''),
+    queryFn: () => api.isFollowing(profileId as string),
+    enabled: Boolean(profileId && session),
+    staleTime: 30_000,
+  })
+}
+
+/** Follow or unfollow, then refresh the watching counts and the bell. */
+export function useFollowToggle(profileId: string | undefined, username: string) {
+  const api = useApi()
+  const { session } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (next: boolean) => (next ? api.followUser(username) : api.unfollowUser(username)),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.isFollowing(session?.userId ?? null, profileId ?? '') }),
+        queryClient.invalidateQueries({ queryKey: keys.followCounts(profileId ?? '') }),
+        queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['notifications-unread'] }),
+      ])
+    },
   })
 }

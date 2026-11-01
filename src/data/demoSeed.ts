@@ -107,7 +107,7 @@ export interface DemoReview {
 export interface DemoNotification {
   id: string
   userId: string
-  kind: 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system'
+  kind: 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system' | 'follow' | 'new_product' | 'collection'
   productId: string | null
   actorId: string | null
   body: string | null

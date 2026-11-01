@@ -116,7 +116,7 @@ export interface TopHunter {
   rank: number
 }
 
-export type NotificationKind = 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system'
+export type NotificationKind = 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system' | 'follow' | 'new_product' | 'collection'
 
 export interface Notification {
   id: string
@@ -459,6 +459,11 @@ export interface ShekargahApi {
   listNotifications(page: number): Promise<Page<Notification>>
   unreadNotificationCount(): Promise<number>
   markAllNotificationsRead(): Promise<void>
+
+  followUser(username: string): Promise<void>
+  unfollowUser(username: string): Promise<void>
+  isFollowing(profileId: string): Promise<boolean>
+  followCounts(profileId: string): Promise<{ followers: number; following: number }>
 
   reportContent(input: ReportInput): Promise<void>
 

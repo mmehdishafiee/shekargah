@@ -76,6 +76,9 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
   const state: DemoState = options.state ?? storage?.load() ?? createDemoState()
   const listeners = new Set<(session: Session | null, event: AuthEvent) => void>()
 
+  // The demo keeps follows in memory; they are not part of the persisted seed.
+  const follows: { followerId: string; followingId: string; createdAt: string }[] = []
+
   const persist = () => storage?.save(state)
   const wait = () => (latency > 0 ? new Promise((r) => setTimeout(r, latency)) : Promise.resolve())
 
@@ -801,6 +804,48 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       const now = new Date().toISOString()
       for (const n of state.notifications) if (n.userId === user.id && !n.readAt) n.readAt = now
       persist()
+    },
+
+    async followUser(username) {
+      await wait()
+      const user = requireUser()
+      const target = state.users.find((u) => u.username === username.trim().toLowerCase())
+      if (!target) throw new ApiError('not_found')
+      if (target.id === user.id) throw new ApiError('invalid_input')
+      if (follows.some((f) => f.followerId === user.id && f.followingId === target.id)) return
+      follows.push({ followerId: user.id, followingId: target.id, createdAt: new Date().toISOString() })
+      state.notifications.push({
+        id: newId('n'),
+        userId: target.id,
+        kind: 'follow',
+        productId: null,
+        actorId: user.id,
+        body: null,
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      })
+    },
+
+    async unfollowUser(username) {
+      await wait()
+      const user = requireUser()
+      const target = state.users.find((u) => u.username === username.trim().toLowerCase())
+      if (!target) throw new ApiError('not_found')
+      const index = follows.findIndex((f) => f.followerId === user.id && f.followingId === target.id)
+      if (index >= 0) follows.splice(index, 1)
+    },
+
+    async isFollowing(profileId) {
+      const user = current()
+      if (!user) return false
+      return follows.some((f) => f.followerId === user.id && f.followingId === profileId)
+    },
+
+    async followCounts(profileId) {
+      return {
+        followers: follows.filter((f) => f.followingId === profileId).length,
+        following: follows.filter((f) => f.followerId === profileId).length,
+      }
     },
 
     async reportContent({ productId, commentId, reason, details }) {

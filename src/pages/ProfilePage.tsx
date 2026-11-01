@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AtSign, Briefcase, CalendarDays, Code2, Globe, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
+import { useFollowCounts, useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
@@ -12,6 +12,7 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { ProductRow } from '@/components/product/ProductRow'
 import { StatusBadge } from '@/components/product/StatusBadge'
+import { FollowButton } from '@/components/profile/FollowButton'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
@@ -66,6 +67,7 @@ export function ProfilePage() {
   const profile = useProfileByUsername(username)
   const { session } = useAuth()
   const products = useMakerProducts(profile.data?.id)
+  const followCounts = useFollowCounts(profile.data?.id)
   const published = products.data?.filter((p) => p.status === 'published') ?? []
   const unpublished = products.data?.filter((p) => p.status !== 'published') ?? []
   // A member can both build products and discover other people's, so the two
@@ -125,11 +127,21 @@ export function ProfilePage() {
                 )}
               </h1>
               <p className="ltr mt-0.5 text-start text-sm text-ink-muted">@{user.username}</p>
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-muted">
+                <span>
+                  <b className="font-bold text-ink">{formatNumber(followCounts.data?.followers ?? 0)}</b> دنبال‌کننده
+                </span>
+                <span>
+                  <b className="font-bold text-ink">{formatNumber(followCounts.data?.following ?? 0)}</b> دنبال‌شده
+                </span>
+              </p>
             </div>
-            {isSelf && (
+            {isSelf ? (
               <ButtonLink to="/settings" variant="secondary" size="sm" icon={<Settings size={16} strokeWidth={1.75} aria-hidden />}>
                 ویرایش پروفایل
               </ButtonLink>
+            ) : (
+              <FollowButton profileId={user.id} username={user.username} />
             )}
           </div>
 

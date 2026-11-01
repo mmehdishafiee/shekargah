@@ -1044,6 +1044,29 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       checkVoid(await supabase.rpc('mark_all_notifications_read'))
     },
 
+    async followUser(username) {
+      await currentUserId()
+      checkVoid(await supabase.rpc('follow_user', { p_username: username }))
+    },
+
+    async unfollowUser(username) {
+      await currentUserId()
+      checkVoid(await supabase.rpc('unfollow_user', { p_username: username }))
+    },
+
+    async isFollowing(profileId) {
+      const data = check(await supabase.rpc('is_following', { p_profile_id: profileId }))
+      return data === true
+    },
+
+    async followCounts(profileId) {
+      const rows = check(await supabase.rpc('profile_follow_counts', { p_profile_id: profileId })) as
+        | { followers: number | string; following: number | string }[]
+        | null
+      const row = rows?.[0]
+      return { followers: Number(row?.followers ?? 0), following: Number(row?.following ?? 0) }
+    },
+
     async reportContent({ productId, commentId, reason, details }) {
       await currentUserId()
       const { error } = await supabase.from('reports').insert({

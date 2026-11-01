@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { BellOff, CheckCheck, MessageCircle, Star, ThumbsUp, Trophy, XCircle } from 'lucide-react'
+import { BellOff, CheckCheck, Layers, MessageCircle, Rocket, Star, ThumbsUp, Trophy, UserPlus, XCircle } from 'lucide-react'
 import { useApi } from '@/data/api'
 import { useNotifications } from '@/data/queries'
 import type { Notification, NotificationKind } from '@/data/types'
@@ -19,6 +19,9 @@ const KIND_META: Record<NotificationKind, { icon: typeof ThumbsUp; label: string
   approved: { icon: Trophy, label: 'تأیید شد' },
   rejected: { icon: XCircle, label: 'رد شد' },
   system: { icon: CheckCheck, label: 'اطلاعیه' },
+  follow: { icon: UserPlus, label: 'دنبال‌کردن تازه' },
+  new_product: { icon: Rocket, label: 'محصول تازه' },
+  collection: { icon: Layers, label: 'مجموعه‌ی تازه' },
 }
 
 export function NotificationsPage() {
@@ -134,9 +137,11 @@ function NotificationRow({ item }: { item: Notification }) {
               </Link>{' '}
             </>
           )}
-          {item.productSlug ? (
+          {item.kind === 'follow' ? (
+            'شروع کرد به دنبال‌کردن تو'
+          ) : item.productSlug ? (
             <>
-              روی{' '}
+              {item.kind === 'new_product' ? 'محصول تازه منتشر کرد: ' : item.kind === 'collection' ? 'مجموعه‌ی تازه ساخت: ' : 'روی '}
               <Link to={productPath(item.productSlug)} className="font-semibold hover:underline">
                 {item.productName}
               </Link>
