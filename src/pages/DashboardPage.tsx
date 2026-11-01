@@ -8,18 +8,25 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { StatusBadge } from '@/components/product/StatusBadge'
 import { ButtonLink } from '@/components/ui/Button'
-import { EmptyState, PageLoader } from '@/components/ui/Feedback'
+import { EmptyState, ErrorState, Notice, PageLoader } from '@/components/ui/Feedback'
 import { cardClass } from '@/components/ui/styles'
 
 /** Personal overview: my submissions, saves and unread activity. */
 export function DashboardPage() {
   useDocumentMeta('داشبورد من')
-  const { profile } = useAuth()
+  const { profile, loading } = useAuth()
   const products = useMakerProducts(profile?.id)
   const saved = useSavedProducts()
   const unread = useUnreadNotifications()
 
-  if (!profile) return <PageLoader />
+  if (loading) return <PageLoader />
+  if (!profile) {
+    return (
+      <Notice tone="danger" title="پروفایل بارگذاری نشد">
+        صفحه را دوباره باز کن. اگر مشکل ادامه داشت از صفحه‌ی تماس با ما اطلاع بده.
+      </Notice>
+    )
+  }
 
   const published = products.data?.filter((product) => product.status === 'published') ?? []
   const pending = products.data?.filter((product) => product.status === 'pending') ?? []
@@ -59,6 +66,8 @@ export function DashboardPage() {
         <div className={`${cardClass} mt-3 p-1.5 sm:p-2`}>
           {products.isPending ? (
             <PageLoader />
+          ) : products.isError ? (
+            <ErrorState error={products.error} onRetry={() => products.refetch()} />
           ) : (products.data ?? []).length === 0 ? (
             <EmptyState
               icon={<Package size={22} strokeWidth={1.75} />}
@@ -98,7 +107,9 @@ export function DashboardPage() {
       <div>
         <h2 className="text-lg font-bold">ذخیره‌شده‌ها</h2>
         <div className={`${cardClass} mt-3 p-1.5 sm:p-2`}>
-          {savedItems.length === 0 ? (
+          {saved.isError ? (
+            <ErrorState error={saved.error} onRetry={() => saved.refetch()} />
+          ) : savedItems.length === 0 ? (
             <EmptyState icon={<Bookmark size={22} strokeWidth={1.75} />} title="چیزی ذخیره نکرده‌ای" description="محصول‌ها را ذخیره کن تا بعداً راحت پیدایشان کنی." />
           ) : (
             <ul className="divide-y divide-line/70">

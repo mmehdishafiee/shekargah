@@ -26,8 +26,15 @@ import { cardClass } from '@/components/ui/styles'
 
 export function SettingsPage() {
   useDocumentMeta('تنظیمات حساب')
-  const { profile } = useAuth()
-  if (!profile) return <PageLoader />
+  const { profile, loading } = useAuth()
+  if (loading) return <PageLoader />
+  if (!profile) {
+    return (
+      <Notice tone="danger" title="پروفایل بارگذاری نشد">
+        صفحه را دوباره باز کن. اگر مشکل ادامه داشت از صفحه‌ی تماس با ما اطلاع بده.
+      </Notice>
+    )
+  }
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <h1 className="text-2xl font-extrabold">تنظیمات حساب</h1>

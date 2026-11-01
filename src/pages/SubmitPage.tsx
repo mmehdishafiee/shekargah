@@ -278,7 +278,7 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
                   className="sr-only"
                   onChange={(e) => {
                     const files = Array.from(e.target.files ?? [])
-                    set('screenshots', [...values.screenshots, ...files].slice(0, LIMITS.screenshots.max + 1))
+                    set('screenshots', [...values.screenshots, ...files].slice(0, LIMITS.screenshots.max))
                     e.target.value = ''
                   }}
                 />

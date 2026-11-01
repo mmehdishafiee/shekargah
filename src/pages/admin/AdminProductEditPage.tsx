@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, X } from 'lucide-react'
 import { useApi } from '@/data/api'
+import { useAuth } from '@/auth/useAuth'
 import { useCategories, useProduct, useTags } from '@/data/queries'
 import { errorMessage } from '@/lib/errors'
 import { formatBytes } from '@/lib/format'
@@ -17,10 +18,19 @@ import { cardClass } from '@/components/ui/styles'
 
 export function AdminProductEditPage() {
   const { slug = '' } = useParams()
+  const { session, isAdmin } = useAuth()
   const product = useProduct(slug)
   if (product.isPending) return <PageLoader />
   if (product.isError) return <Notice tone="danger">{errorMessage(product.error)}</Notice>
   if (!product.data) return <Notice tone="danger">محصول پیدا نشد.</Notice>
+  if (!isAdmin && session?.userId !== product.data.maker.id) {
+    return (
+      <Notice tone="danger" title="اجازه‌ی ویرایش نداری">
+        فقط سازنده‌ی همین محصول یا مدیر سایت می‌تواند آن را ویرایش کند. اگر تغییری لازم است، از صفحه‌ی محصول «پیشنهاد
+        ویرایش» بفرست تا بررسی شود.
+      </Notice>
+    )
+  }
   return <EditForm product={product.data} />
 }
 

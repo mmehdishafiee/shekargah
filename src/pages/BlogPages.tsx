@@ -3,7 +3,7 @@ import { CalendarDays, Newspaper, Tag } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { usePost, usePosts } from '@/data/queries'
 import { formatDate } from '@/lib/format'
-import { markdownToPlain, renderMarkdown } from '@/lib/markdown'
+import { renderMarkdown } from '@/lib/markdown'
 import { articleSchema, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -70,7 +70,7 @@ export function BlogPage() {
               key={post.id}
               slug={post.slug}
               title={post.title}
-              excerpt={post.excerpt ?? (markdownToPlain(post.excerpt ?? '', 140) || null)}
+              excerpt={post.excerpt}
               coverUrl={post.coverUrl}
               tags={post.tags}
               publishedAt={post.publishedAt}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/auth/useAuth'
 import { env } from '@/lib/env'
@@ -114,8 +114,12 @@ function RecoveryRedirect() {
   const { passwordRecovery, session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  // Send the user to the reset form exactly once when they arrive from a
+  // recovery link; afterwards they must be free to browse the site.
+  const redirected = useRef(false)
   useEffect(() => {
-    if (passwordRecovery && location.pathname !== '/reset-password') {
+    if (passwordRecovery && !redirected.current && location.pathname !== '/reset-password') {
+      redirected.current = true
       navigate('/reset-password', { replace: true })
       return
     }

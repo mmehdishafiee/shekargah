@@ -111,6 +111,8 @@ export function CompanyPage() {
               <ProductRowSkeleton key={index} />
             ))}
           </div>
+        ) : products.isError ? (
+          <ErrorState error={products.error} onRetry={() => products.refetch()} />
         ) : items.length === 0 ? (
           <EmptyState icon={<Building2 size={22} strokeWidth={1.75} />} title="این شرکت هنوز محصول منتشرشده‌ای ندارد" />
         ) : (

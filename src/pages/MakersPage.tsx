@@ -96,10 +96,10 @@ export function MakersPage() {
             ))}
           </ol>
 
-          {makers.hasNextPage && (
+          {active.hasNextPage && (
             <div className="flex justify-center">
-              <Button variant="secondary" onClick={() => makers.fetchNextPage()} loading={makers.isFetchingNextPage}>
-                سازندگان بیشتر
+              <Button variant="secondary" onClick={() => active.fetchNextPage()} loading={active.isFetchingNextPage}>
+                {tab === 'makers' ? 'سازندگان بیشتر' : 'شکارچی‌های بیشتر'}
               </Button>
             </div>
           )}

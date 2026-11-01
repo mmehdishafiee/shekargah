@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/format'
 import { markdownToPlain, renderMarkdown } from '@/lib/markdown'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/Dialog'
 import { Field, TextArea, TextInput } from '@/components/ui/Field'
 import { EmptyState, ErrorState, Notice, PageLoader } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
@@ -30,6 +31,7 @@ export function AdminBlogPage() {
   const toast = useToast()
   const posts = useAdminPosts()
   const items = posts.data?.pages.flatMap((page) => page.items) ?? []
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
 
   const remove = useMutation({
     mutationFn: (id: string) => api.adminDeletePost(id),
@@ -41,6 +43,17 @@ export function AdminBlogPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        title="حذف نوشته"
+        description={pendingDelete ? `«${pendingDelete.title}» برای همیشه حذف می‌شود.` : undefined}
+        confirmLabel="حذف"
+        tone="danger"
+        onConfirm={async () => {
+          if (pendingDelete) await remove.mutateAsync(pendingDelete.id)
+        }}
+      />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold">وبلاگ</h1>
@@ -87,7 +100,7 @@ export function AdminBlogPage() {
                   aria-label={`حذف ${post.title}`}
                   icon={<Trash2 size={15} strokeWidth={1.75} />}
                   loading={remove.isPending}
-                  onClick={() => remove.mutate(post.id)}
+                  onClick={() => setPendingDelete({ id: post.id, title: post.title })}
                 />
               </li>
             ))}

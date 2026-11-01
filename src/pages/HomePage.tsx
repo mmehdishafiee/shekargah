@@ -30,9 +30,10 @@ export function HomePage() {
   const sort: SortOrder = params.get('sort') === 'newest' ? 'newest' : 'popular'
   const category = params.get('category') ?? ''
   const search = params.get('q')?.trim() ?? ''
+  const tag = params.get('tag')?.trim() ?? ''
 
   const categories = useCategories()
-  const feed = useProductFeed({ sort, category: category || undefined, search: search || undefined })
+  const feed = useProductFeed({ sort, category: category || undefined, search: search || undefined, tags: tag ? [tag] : undefined })
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
@@ -42,11 +43,15 @@ export function HomePage() {
   const hotTopics = useTopics()
   const topMakers = useTopMakers()
   // The default home view is the day-by-day winners list, like a daily digest.
-  const isBrowsing = Boolean(search) || Boolean(category)
+  const isBrowsing = Boolean(search) || Boolean(category) || Boolean(tag)
   const winners = useDailyWinners(7, 5)
 
   const activeCategory = categories.data?.find((c) => c.slug === category)
-  const heading = search ? `نتیجه‌های «${search}»` : (activeCategory?.name ?? 'کشف محصولات تازه')
+  const heading = search
+    ? `نتیجه‌های «${search}»`
+    : tag
+      ? `محصولات با برچسب «${tag}»`
+      : (activeCategory?.name ?? 'کشف محصولات تازه')
   useDocumentMeta(search ? `جست‌وجوی «${search}»` : activeCategory?.name, activeCategory?.description ?? undefined, {
     path: '/',
     schema: search ? undefined : websiteSchema(),
@@ -161,7 +166,7 @@ export function HomePage() {
                 search ? 'عبارت دیگری را امتحان کن یا فیلترها را بردار.' : 'اگر محصولی در این دسته می‌شناسی، معرفی‌اش کن.'
               }
               action={
-                search || category ? (
+                search || category || tag ? (
                   <Button variant="secondary" onClick={clearFilters}>
                     برداشتن فیلترها
                   </Button>

@@ -62,6 +62,7 @@ export function ReviewSection({ productId, productName }: { productId: string; p
       setBody('')
       toast.success('نقدت حذف شد.')
       await queryClient.invalidateQueries({ queryKey: ['reviews', productId] })
+      await queryClient.invalidateQueries({ queryKey: ['product'] })
     },
     onError: (caught) => setError(caught),
   })

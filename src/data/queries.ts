@@ -224,7 +224,10 @@ export function useCollections() {
 export function useCollectionProducts(slug: string) {
   const api = useApi()
   return useInfiniteQuery({
-    queryKey: ['collection', slug],
+    // Must not share a key with useCollection(): the shapes are different
+    // (a Page of products vs the collection itself) and React Query would
+    // hand the wrong data to whichever hook reads it second.
+    queryKey: ['collection-products', slug],
     queryFn: ({ pageParam }) => api.listCollectionProducts(slug, pageParam),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
