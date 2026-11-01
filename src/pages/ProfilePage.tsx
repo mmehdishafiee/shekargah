@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { AtSign, Briefcase, CalendarDays, Code2, Globe, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
+import { AtSign, Briefcase, CalendarDays, Code2, Globe, Layers, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { useFollowCounts, useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
+import { useFollowCounts, useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername, useProfileCollections } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
@@ -13,6 +13,7 @@ import { ProductLogo } from '@/components/product/ProductLogo'
 import { ProductRow } from '@/components/product/ProductRow'
 import { StatusBadge } from '@/components/product/StatusBadge'
 import { FollowButton } from '@/components/profile/FollowButton'
+import { CollectionCard } from '@/components/collection/CollectionCard'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
@@ -68,6 +69,7 @@ export function ProfilePage() {
   const { session } = useAuth()
   const products = useMakerProducts(profile.data?.id)
   const followCounts = useFollowCounts(profile.data?.id)
+  const collections = useProfileCollections(profile.data?.id)
   const published = products.data?.filter((p) => p.status === 'published') ?? []
   const unpublished = products.data?.filter((p) => p.status !== 'published') ?? []
   // A member can both build products and discover other people's, so the two
@@ -160,6 +162,40 @@ export function ProfilePage() {
           </p>
         </div>
       </header>
+
+      {(isSelf || (collections.data ?? []).length > 0) && (
+        <section aria-labelledby="collections-heading">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="collections-heading" className="text-lg font-bold">
+              مجموعه‌ها
+              {collections.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(collections.data.length)})</span>}
+            </h2>
+            {isSelf && (
+              <ButtonLink to="/collections" size="sm" variant="secondary" icon={<Layers size={15} strokeWidth={1.75} aria-hidden />}>
+                ساخت مجموعه
+              </ButtonLink>
+            )}
+          </div>
+          {(collections.data ?? []).length === 0 ? (
+            <div className={`${cardClass} mt-4`}>
+              <EmptyState
+                icon={<Layers size={22} strokeWidth={1.75} />}
+                title="هنوز مجموعه‌ای نساخته"
+                description="لیست‌هایی مثل «بهترین ابزارهای مشاهده‌ی قیمت» بساز و با بقیه به اشتراک بگذار."
+                action={isSelf ? <ButtonLink to="/collections">ساخت مجموعه</ButtonLink> : undefined}
+              />
+            </div>
+          ) : (
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {(collections.data ?? []).map((collection) => (
+                <li key={collection.id}>
+                  <CollectionCard collection={collection} showOwner={false} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {isSelf && unpublished.length > 0 && (
         <section aria-labelledby="private-heading">

@@ -17,6 +17,7 @@ import {
   type Session,
   type ShekargahApi,
   type TagRef,
+  type UserCollection,
 } from './types'
 
 export interface DemoStorage {
@@ -78,6 +79,35 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
 
   // The demo keeps follows in memory; they are not part of the persisted seed.
   const follows: { followerId: string; followingId: string; createdAt: string }[] = []
+
+  interface DemoCollection {
+    id: string
+    slug: string
+    name: string
+    description: string | null
+    isPublic: boolean
+    ownerId: string
+    createdAt: string
+    productIds: string[]
+    savedBy: string[]
+  }
+  const userCollections: DemoCollection[] = []
+
+  const toUserCollection = (collection: DemoCollection, viewerId: string | null): UserCollection => {
+    const owner = userById(collection.ownerId)
+    return {
+      id: collection.id,
+      slug: collection.slug,
+      name: collection.name,
+      description: collection.description,
+      isPublic: collection.isPublic,
+      productCount: collection.productIds.filter((id) => state.products.some((p) => p.id === id && p.status === 'published')).length,
+      saveCount: collection.savedBy.length,
+      isSaved: Boolean(viewerId && collection.savedBy.includes(viewerId)),
+      isOwner: Boolean(viewerId && collection.ownerId === viewerId),
+      owner: owner ? { id: owner.id, username: owner.username, displayName: owner.displayName, avatarUrl: owner.avatarUrl } : null,
+    }
+  }
 
   const persist = () => storage?.save(state)
   const wait = () => (latency > 0 ? new Promise((r) => setTimeout(r, latency)) : Promise.resolve())
@@ -846,6 +876,99 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         followers: follows.filter((f) => f.followingId === profileId).length,
         following: follows.filter((f) => f.followerId === profileId).length,
       }
+    },
+
+    async listMyCollections() {
+      await wait()
+      const user = requireUser()
+      return userCollections.filter((c) => c.ownerId === user.id).map((c) => toUserCollection(c, user.id))
+    },
+
+    async listProfileCollections(profileId) {
+      await wait()
+      const viewer = current()
+      return userCollections
+        .filter((c) => c.ownerId === profileId && c.isPublic)
+        .map((c) => toUserCollection(c, viewer?.id ?? null))
+    },
+
+    async listSavedCollections() {
+      await wait()
+      const user = requireUser()
+      return userCollections.filter((c) => c.savedBy.includes(user.id)).map((c) => toUserCollection(c, user.id))
+    },
+
+    async getCollection(slug) {
+      await wait()
+      const collection = userCollections.find((c) => c.slug === slug)
+      if (!collection) return null
+      const viewer = current()
+      if (!collection.isPublic && collection.ownerId !== viewer?.id) return null
+      return toUserCollection(collection, viewer?.id ?? null)
+    },
+
+    async createCollection({ name, description, isPublic }) {
+      await wait()
+      const user = requireUser()
+      if (name.trim().length < 2) throw new ApiError('invalid_input')
+      const id = newId('col')
+      const slug = `list-${Math.random().toString(36).slice(2, 10)}`
+      userCollections.push({
+        id,
+        slug,
+        name: name.trim(),
+        description: description?.trim() || null,
+        isPublic: isPublic ?? true,
+        ownerId: user.id,
+        createdAt: new Date().toISOString(),
+        productIds: [],
+        savedBy: [],
+      })
+      return slug
+    },
+
+    async updateCollection({ id, name, description, isPublic }) {
+      await wait()
+      const user = requireUser()
+      const collection = userCollections.find((c) => c.id === id && c.ownerId === user.id)
+      if (!collection) throw new ApiError('not_found')
+      collection.name = name.trim()
+      collection.description = description?.trim() || null
+      collection.isPublic = isPublic
+    },
+
+    async deleteCollection(id) {
+      await wait()
+      const user = requireUser()
+      const index = userCollections.findIndex((c) => c.id === id && c.ownerId === user.id)
+      if (index < 0) throw new ApiError('not_found')
+      userCollections.splice(index, 1)
+    },
+
+    async addProductToCollection(collectionId, productId) {
+      await wait()
+      const user = requireUser()
+      const collection = userCollections.find((c) => c.id === collectionId && c.ownerId === user.id)
+      if (!collection) throw new ApiError('not_found')
+      if (!collection.productIds.includes(productId)) collection.productIds.push(productId)
+    },
+
+    async removeProductFromCollection(collectionId, productId) {
+      await wait()
+      const user = requireUser()
+      const collection = userCollections.find((c) => c.id === collectionId && c.ownerId === user.id)
+      if (!collection) throw new ApiError('not_found')
+      collection.productIds = collection.productIds.filter((id) => id !== productId)
+    },
+
+    async setCollectionSaved(collectionId, saved) {
+      await wait()
+      const user = requireUser()
+      const collection = userCollections.find((c) => c.id === collectionId)
+      if (!collection) throw new ApiError('not_found')
+      const has = collection.savedBy.includes(user.id)
+      if (saved && !has) collection.savedBy.push(user.id)
+      if (!saved && has) collection.savedBy = collection.savedBy.filter((id) => id !== user.id)
     },
 
     async reportContent({ productId, commentId, reason, details }) {

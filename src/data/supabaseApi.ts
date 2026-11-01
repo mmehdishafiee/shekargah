@@ -28,6 +28,7 @@ import {
   type TagRef,
   type TopHunter,
   type TopMaker,
+  type UserCollection,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -281,6 +282,43 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     if (!stored.path) return null
     return supabase.storage.from(bucket).getPublicUrl(stored.path).data.publicUrl
   }
+
+  interface UserCollectionRow {
+    id: string
+    slug: string
+    name: string
+    description: string | null
+    is_public: boolean
+    owner_id: string | null
+    owner_username: string | null
+    owner_display_name: string | null
+    owner_avatar_path: string | null
+    product_count: number | string
+    save_count: number | string
+    is_saved: boolean
+    is_owner: boolean
+  }
+
+  const toUserCollection = (row: UserCollectionRow): UserCollection => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description,
+    isPublic: row.is_public,
+    productCount: Number(row.product_count),
+    saveCount: Number(row.save_count),
+    isSaved: Boolean(row.is_saved),
+    isOwner: Boolean(row.is_owner),
+    owner:
+      row.owner_id && row.owner_username
+        ? {
+            id: row.owner_id,
+            username: row.owner_username,
+            displayName: row.owner_display_name ?? row.owner_username,
+            avatarUrl: publicUrl('avatars', row.owner_avatar_path),
+          }
+        : null,
+  })
   const toLeanPage = (rows: CollectionRow[], page: number) => {
     const total = Number(rows[0]?.total_count ?? 0)
     const items: ProductSummary[] = rows.map((row) => ({
@@ -1164,6 +1202,66 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         await supabase.rpc('list_collection_products', { p_slug: slug, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }),
       ) as CollectionRow[]
       return toLeanPage(rows, page)
+    },
+
+    async listMyCollections() {
+      const rows = check(await supabase.rpc('list_my_collections')) as UserCollectionRow[]
+      return rows.map(toUserCollection)
+    },
+
+    async listProfileCollections(profileId) {
+      const rows = check(await supabase.rpc('list_profile_collections', { p_profile_id: profileId })) as UserCollectionRow[]
+      return rows.map(toUserCollection)
+    },
+
+    async listSavedCollections() {
+      const rows = check(await supabase.rpc('list_saved_collections')) as UserCollectionRow[]
+      return rows.map(toUserCollection)
+    },
+
+    async getCollection(slug) {
+      const rows = check(await supabase.rpc('get_collection', { p_slug: slug })) as UserCollectionRow[]
+      const row = rows?.[0]
+      return row ? toUserCollection(row) : null
+    },
+
+    async createCollection({ name, description, isPublic }) {
+      await currentUserId()
+      const slug = check(
+        await supabase.rpc('create_collection', {
+          p_name: name,
+          p_description: description ?? null,
+          p_is_public: isPublic ?? true,
+        }),
+      )
+      return String(slug)
+    },
+
+    async updateCollection({ id, name, description, isPublic }) {
+      checkVoid(
+        await supabase.rpc('update_collection', {
+          p_collection_id: id,
+          p_name: name,
+          p_description: description ?? null,
+          p_is_public: isPublic,
+        }),
+      )
+    },
+
+    async deleteCollection(id) {
+      checkVoid(await supabase.rpc('delete_collection', { p_collection_id: id }))
+    },
+
+    async addProductToCollection(collectionId, productId) {
+      checkVoid(await supabase.rpc('add_product_to_collection', { p_collection_id: collectionId, p_product_id: productId }))
+    },
+
+    async removeProductFromCollection(collectionId, productId) {
+      checkVoid(await supabase.rpc('remove_product_from_collection', { p_collection_id: collectionId, p_product_id: productId }))
+    },
+
+    async setCollectionSaved(collectionId, saved) {
+      checkVoid(await supabase.rpc('set_collection_saved', { p_collection_id: collectionId, p_saved: saved }))
     },
 
     async listTopHunters(page) {

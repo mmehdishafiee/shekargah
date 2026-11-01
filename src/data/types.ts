@@ -153,6 +153,20 @@ export interface Collection {
   productCount: number
 }
 
+/** A member-curated list, with its owner and the viewer's saved/owner state. */
+export interface UserCollection {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  isPublic: boolean
+  productCount: number
+  saveCount: number
+  isSaved: boolean
+  isOwner: boolean
+  owner: { id: string; username: string; displayName: string; avatarUrl: string | null } | null
+}
+
 export interface Company {
   id: string
   slug: string
@@ -440,6 +454,18 @@ export interface ShekargahApi {
 
   listCollections(): Promise<Collection[]>
   listCollectionProducts(slug: string, page: number): Promise<Page<ProductSummary>>
+
+  /** Member-created lists. */
+  listMyCollections(): Promise<UserCollection[]>
+  listProfileCollections(profileId: string): Promise<UserCollection[]>
+  listSavedCollections(): Promise<UserCollection[]>
+  getCollection(slug: string): Promise<UserCollection | null>
+  createCollection(input: { name: string; description?: string | null; isPublic?: boolean }): Promise<string>
+  updateCollection(input: { id: string; name: string; description?: string | null; isPublic: boolean }): Promise<void>
+  deleteCollection(id: string): Promise<void>
+  addProductToCollection(collectionId: string, productId: string): Promise<void>
+  removeProductFromCollection(collectionId: string, productId: string): Promise<void>
+  setCollectionSaved(collectionId: string, saved: boolean): Promise<void>
 
   /** Hunters ranked by votes their discovered products received. */
   listTopHunters(page: number): Promise<Page<TopHunter>>

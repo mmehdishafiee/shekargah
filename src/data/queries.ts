@@ -388,3 +388,101 @@ export function useFollowToggle(profileId: string | undefined, username: string)
     },
   })
 }
+
+export function useMyCollections() {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: ['my-collections', session?.userId ?? null],
+    queryFn: () => api.listMyCollections(),
+    enabled: Boolean(session),
+    staleTime: 15_000,
+  })
+}
+
+export function useProfileCollections(profileId: string | undefined) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['profile-collections', profileId ?? ''],
+    queryFn: () => api.listProfileCollections(profileId as string),
+    enabled: Boolean(profileId),
+    staleTime: 15_000,
+  })
+}
+
+export function useSavedCollections() {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: ['saved-collections', session?.userId ?? null],
+    queryFn: () => api.listSavedCollections(),
+    enabled: Boolean(session),
+    staleTime: 15_000,
+  })
+}
+
+export function useCollection(slug: string) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['collection', slug],
+    queryFn: () => api.getCollection(slug),
+    enabled: Boolean(slug),
+    staleTime: 15_000,
+  })
+}
+
+/** Invalidate every list surface after a list or its contents change. */
+function useCollectionInvalidator(slug?: string) {
+  const queryClient = useQueryClient()
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['collections'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-collections'] }),
+      queryClient.invalidateQueries({ queryKey: ['saved-collections'] }),
+      queryClient.invalidateQueries({ queryKey: ['profile-collections'] }),
+      queryClient.invalidateQueries({ queryKey: ['collection-products', slug ?? ''] }),
+      queryClient.invalidateQueries({ queryKey: ['collection', slug ?? ''] }),
+    ])
+  }
+}
+
+export function useCreateCollection() {
+  const api = useApi()
+  const invalidate = useCollectionInvalidator()
+  return useMutation({
+    mutationFn: (input: { name: string; description?: string | null; isPublic?: boolean }) => api.createCollection(input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteCollection(slug: string) {
+  const api = useApi()
+  const invalidate = useCollectionInvalidator(slug)
+  return useMutation({
+    mutationFn: (id: string) => api.deleteCollection(id),
+    onSuccess: invalidate,
+  })
+}
+
+export function useSetCollectionSaved(collectionId: string, slug: string) {
+  const api = useApi()
+  const invalidate = useCollectionInvalidator(slug)
+  return useMutation({
+    mutationFn: (saved: boolean) => api.setCollectionSaved(collectionId, saved),
+    onSuccess: invalidate,
+  })
+}
+
+export function useCollectionItems(collectionId: string | undefined, slug: string) {
+  const api = useApi()
+  const invalidate = useCollectionInvalidator(slug)
+  const add = useMutation({
+    mutationFn: (productId: string) => api.addProductToCollection(collectionId as string, productId),
+    onSuccess: invalidate,
+  })
+  const remove = useMutation({
+    mutationFn: (productId: string) => api.removeProductFromCollection(collectionId as string, productId),
+    onSuccess: invalidate,
+  })
+  return { add, remove }
+}
