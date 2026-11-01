@@ -19,7 +19,8 @@ import { cardClass } from '@/components/ui/styles'
 interface Commit {
   hash: string
   date: string
-  subject: string
+  title?: string
+  subject?: string
 }
 
 const FEATURE_LABELS: Record<FeatureStatus, string> = {
@@ -99,7 +100,7 @@ export function ChangelogPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p dir="auto" className="text-sm font-medium leading-6">
-                    {commit.subject}
+                    {commit.title ?? 'به‌روزرسانی شکارگاه'}
                   </p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-faint">
                     <span>{formatDate(commit.date)}</span>
