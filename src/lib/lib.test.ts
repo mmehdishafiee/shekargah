@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { formatNumber, formatRelative } from './format'
 import { hostnameOf, normalizeFa, slugify } from './text'
@@ -89,5 +90,24 @@ describe('validation', () => {
 describe('index.html', () => {
   it('declares Persian language and right-to-left direction', () => {
     expect(indexHtml).toMatch(/<html lang="fa" dir="rtl">/)
+  })
+})
+
+describe('markdown renderer', () => {
+  it('renders links with the correct href and keeps unsafe URLs as text', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { MemoryRouter } = await import('react-router')
+    const { renderMarkdown } = await import('./markdown')
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        renderMarkdown('[لیپک](https://leepaak.ir) و [معرفی](/submit)\n\n[بد](javascript:alert(1))'),
+      ) as never,
+    )
+    expect(html).toContain('href="https://leepaak.ir"')
+    expect(html).toContain('href="/submit"')
+    expect(html).not.toContain('javascript:')
+    expect(html).toContain('بد')
   })
 })

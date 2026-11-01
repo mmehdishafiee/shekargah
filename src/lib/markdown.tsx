@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react'
+import { Link } from 'react-router'
 
 /**
  * Minimal, safe Markdown renderer for blog posts.
@@ -11,7 +12,7 @@ import { Fragment, type ReactNode } from 'react'
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = []
-  const pattern = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[[^\]]+\]\((https?:\/\/[^\s)]+)\))/g
+  const pattern = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[([^\]]+)\]\(([^\s)]+)\))/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   let index = 0
@@ -34,17 +35,28 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
         </strong>,
       )
     } else if (token.startsWith('*')) {
-      nodes.push(
-        <em key={key}>{token.slice(1, -1)}</em>,
-      )
+      nodes.push(<em key={key}>{token.slice(1, -1)}</em>)
     } else {
-      const label = token.slice(1, token.indexOf(']'))
-      const href = match[4] ?? '#'
-      nodes.push(
-        <a key={key} href={href} target="_blank" rel="noopener noreferrer nofollow" className="font-medium text-brand-700 hover:underline">
-          {label}
-        </a>,
-      )
+      const label = match[5] ?? ''
+      const href = match[6] ?? ''
+      // Only http(s) and site-relative targets are allowed; anything else
+      // (javascript:, data:, ...) falls back to plain text.
+      const safe = /^https?:\/\//i.test(href) || href.startsWith('/')
+      if (!safe) {
+        nodes.push(label)
+      } else if (href.startsWith('/')) {
+        nodes.push(
+          <Link key={key} to={href} className="font-medium text-brand-700 hover:underline">
+            {label}
+          </Link>,
+        )
+      } else {
+        nodes.push(
+          <a key={key} href={href} target="_blank" rel="noopener noreferrer nofollow" className="font-medium text-brand-700 hover:underline">
+            {label}
+          </a>,
+        )
+      }
     }
     lastIndex = match.index + token.length
   }
