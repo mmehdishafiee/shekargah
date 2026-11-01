@@ -163,7 +163,7 @@ export function ProfilePage() {
         </div>
       </header>
 
-      {(isSelf || (collections.data ?? []).length > 0) && (
+      {(collections.data ?? []).length > 0 || (isSelf && collections.isSuccess) ? (
         <section aria-labelledby="collections-heading">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 id="collections-heading" className="text-lg font-bold">
@@ -195,7 +195,7 @@ export function ProfilePage() {
             </ul>
           )}
         </section>
-      )}
+      ) : null}
 
       {isSelf && unpublished.length > 0 && (
         <section aria-labelledby="private-heading">
