@@ -164,7 +164,7 @@ function ProductDetails({ product }: { product: Product }) {
               />
             </dl>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
               <a
                 href={product.websiteUrl}
                 target="_blank"
@@ -191,6 +191,34 @@ function ProductDetails({ product }: { product: Product }) {
                     saved={saved.data?.has(product.id) ?? false}
                   />
                   <ShareButton slug={product.slug} name={product.name} tagline={product.tagline} />
+                </>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-line bg-sunken/50 px-4 py-3 text-[13px] lg:hidden">
+              <span className="text-ink-muted">سازنده:</span>
+              {product.creditRole === 'hunter' ? (
+                product.makerCredit ? (
+                  <Link to={profilePath(product.makerCredit.username)} className="font-semibold hover:underline">
+                    {product.makerCredit.displayName}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">{product.makerCreditName ?? 'ناشناس'}</span>
+                )
+              ) : (
+                <Link to={profilePath(product.maker.username)} className="font-semibold hover:underline">
+                  {product.maker.displayName}
+                </Link>
+              )}
+              {product.creditRole === 'hunter' && product.hunter && (
+                <>
+                  <span className="text-ink-faint" aria-hidden>
+                    ·
+                  </span>
+                  <span className="text-ink-muted">شکارچی:</span>
+                  <Link to={profilePath(product.hunter.username)} className="font-semibold hover:underline">
+                    {product.hunter.displayName}
+                  </Link>
                 </>
               )}
             </div>

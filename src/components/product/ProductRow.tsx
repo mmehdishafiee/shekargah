@@ -20,7 +20,7 @@ interface ProductRowProps {
 
 export function ProductRow({ product, voted, saved = false, rank }: ProductRowProps) {
   return (
-    <article className="group relative flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-sunken/70 sm:px-4">
+    <article className="group relative flex items-center gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-sunken/70 sm:gap-4 sm:px-4 sm:py-3.5">
       <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} />
       <div className="min-w-0 flex-1">
         <h3 className="flex items-baseline gap-1.5 text-[15px] font-bold leading-snug">

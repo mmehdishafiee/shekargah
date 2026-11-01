@@ -95,7 +95,7 @@ function MyCollectionRow({ collection }: { collection: UserCollection }) {
   }
 
   return (
-    <li className="flex items-center gap-2">
+    <li className="flex items-start gap-2">
       <div className="min-w-0 flex-1">
         <CollectionCard collection={collection} showOwner={false} />
       </div>

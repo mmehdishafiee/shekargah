@@ -64,7 +64,7 @@ export function NotificationsPage() {
         </Button>
       </div>
 
-      <div role="group" aria-label="فیلتر اعلان‌ها" className="flex w-max gap-1 rounded-full bg-sunken p-1">
+      <div role="group" aria-label="فیلتر اعلان‌ها" className="flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sunken p-1 [scrollbar-width:none]">
         {(
           [
             ['all', 'همه'],

@@ -67,7 +67,9 @@ describe('product page', () => {
   it('renders a product from a direct nested URL, with maker and comments', async () => {
     renderApp(`/products/${encodeURIComponent('جلالی‌کیت')}`)
     expect(await screen.findByRole('heading', { level: 1, name: 'جلالی‌کیت' })).toBeInTheDocument()
-    expect(screen.getByText('امیر کاظمی')).toBeInTheDocument()
+    // The maker name appears twice on purpose: once in the compact mobile
+    // credit strip and once in the desktop sidebar card.
+    expect(screen.getAllByText('امیر کاظمی').length).toBeGreaterThan(0)
     expect(await screen.findByText(/کتابخانه‌ی شمسی/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'وارد حسابت شو' })).toBeInTheDocument()
     expect(document.title).toBe('جلالی‌کیت | شکارگاه')

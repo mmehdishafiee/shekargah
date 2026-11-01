@@ -168,6 +168,18 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
         { to: '/about', label: 'درباره‌ی شکارگاه' },
       ],
     },
+    {
+      title: 'برای سازندگان',
+      links: [
+        { to: '/submit', label: 'معرفی محصول' },
+        { to: '/dashboard', label: 'داشبورد من' },
+        { to: '/feed', label: 'فید شما' },
+        { to: '/sponsor', label: 'حامی شکارگاه' },
+        { to: '/help', label: 'راهنما' },
+        { to: '/faq', label: 'سوالات متداول' },
+        { to: '/contact', label: 'تماس با ما' },
+      ],
+    },
   ]
   if (session) {
     groups.push({
@@ -190,7 +202,7 @@ function MobileNav({ onNavigate }: { onNavigate: () => void }) {
           <ul className="space-y-0.5">
             {group.links.map((link) => (
               <li key={link.to}>
-                <Link to={link.to} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-sunken" onClick={onNavigate}>
+                <Link to={link.to} className="block rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-sunken" onClick={onNavigate}>
                   {link.label}
                 </Link>
               </li>
@@ -274,10 +286,10 @@ export function Header() {
 
   return (
     <header
-      className="sticky z-30 border-b border-line/70 bg-surface/85 backdrop-blur-md"
+      className="relative z-30 border-b border-line/70 bg-surface/85 backdrop-blur-md md:sticky"
       style={{ top: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:gap-5">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-3 sm:gap-5 sm:px-4">
         <Link to="/" aria-label="شکارگاه، صفحه‌ی اصلی" className="shrink-0 rounded-lg">
           <Logo />
         </Link>
@@ -288,8 +300,10 @@ export function Header() {
           <NavGroups />
         </nav>
 
-        <div className="ms-auto flex items-center gap-2">
-          <ThemeToggle />
+        <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
+          <span className="hidden sm:block">
+            <ThemeToggle />
+          </span>
           {loading ? (
             <div className="h-10 w-28 animate-pulse rounded-control bg-sunken" aria-hidden />
           ) : session ? (
@@ -322,12 +336,12 @@ export function Header() {
         </div>
       </div>
 
-      <div className="px-4 pb-3 md:hidden">
+      <div className="px-3 pb-2.5 sm:px-4 md:hidden">
         <SearchForm />
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-line/70 bg-surface px-4 py-4 lg:hidden">
+        <div className="max-h-[calc(100dvh-7rem)] overflow-y-auto border-t border-line/70 bg-surface px-4 py-4 lg:hidden">
           <MobileNav onNavigate={() => setMobileOpen(false)} />
         </div>
       )}

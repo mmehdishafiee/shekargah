@@ -224,7 +224,7 @@ export function ProfilePage() {
           )}
         </div>
         {published.length > 0 && (
-          <div role="group" aria-label="نوع محصولات" className="mt-3 flex w-max gap-1 rounded-full bg-sunken p-1">
+          <div role="group" aria-label="نوع محصولات" className="mt-3 flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sunken p-1 [scrollbar-width:none]">
             {(
               [
                 ['all', `همه ${formatNumber(published.length)}`],
