@@ -1,7 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from './api'
-import type { LeaderboardPeriod, ProductQuery, ProductStatus } from './types'
+import type { ContactStatus, FeatureStatus, LeaderboardPeriod, ProductQuery, ProductStatus, ReviewStatus } from './types'
 
 export const keys = {
   categories: (includeInactive: boolean) => ['categories', includeInactive] as const,
@@ -485,4 +485,44 @@ export function useCollectionItems(collectionId: string | undefined, slug: strin
     onSuccess: invalidate,
   })
   return { add, remove }
+}
+
+export function useEditRequests(status: ReviewStatus = 'pending') {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: ['edit-requests', status, session?.userId ?? null],
+    queryFn: () => api.listEditRequests(status),
+    enabled: Boolean(session),
+    staleTime: 15_000,
+  })
+}
+
+export function useMakerClaims(status: ReviewStatus = 'pending') {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: ['maker-claims', status, session?.userId ?? null],
+    queryFn: () => api.listMakerClaims(status),
+    enabled: Boolean(session),
+    staleTime: 15_000,
+  })
+}
+
+export function useContactMessages(status: ContactStatus = 'new') {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['contact-messages', status],
+    queryFn: () => api.listContactMessages(status),
+    staleTime: 15_000,
+  })
+}
+
+export function useFeatureRequests(status: FeatureStatus | null = null) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['feature-requests', status],
+    queryFn: () => api.listFeatureRequests(status),
+    staleTime: 30_000,
+  })
 }

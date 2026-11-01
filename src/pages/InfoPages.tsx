@@ -4,6 +4,7 @@ import { BookOpen, Check, Heart, Mail, Rocket, Users } from 'lucide-react'
 import { env } from '@/lib/env'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ButtonLink } from '@/components/ui/Button'
+import { ContactForm } from '@/components/contact/ContactForm'
 import { cardClass } from '@/components/ui/styles'
 
 const CONTACT_EMAIL = 'mmhdishafiee@gmail.com'
@@ -198,6 +199,8 @@ export function ContactPage() {
   useDocumentMeta('تماس با ما', 'راه‌های ارتباط با تیم شکارگاه برای پرسش، گزارش و همکاری.', { path: '/contact' })
   return (
     <PageShell title="تماس با ما" subtitle="برای پرسش، گزارش محتوا، همکاری یا حمایت از شکارگاه از راه‌های زیر پیام بده. تلاش می‌کنیم سریع جواب بدهیم.">
+      <ContactForm />
+
       <InfoCard title="ایمیل" icon={<Mail size={18} strokeWidth={1.75} aria-hidden />}>
         <p>
           سریع‌ترین راه، ایمیل است:{' '}

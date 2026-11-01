@@ -4,9 +4,11 @@
 // Runs as part of `npm run build`; if the API is unreachable it still emits the
 // static routes so a transient network problem never breaks the build.
 
-const SITE = 'https://shekargah.mmehdi.ir'
+import { siteUrl } from './site.mjs'
 
-const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor']
+const SITE = siteUrl()
+
+const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor', '/changelog']
 
 function escapeXml(value) {
   return value.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char])

@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { CalendarDays, Newspaper, Tag } from 'lucide-react'
+import { useAuth } from '@/auth/useAuth'
 import { usePost, usePosts } from '@/data/queries'
 import { formatDate } from '@/lib/format'
 import { markdownToPlain, renderMarkdown } from '@/lib/markdown'
@@ -92,6 +93,7 @@ export function BlogPage() {
 
 export function BlogPostPage() {
   const { slug = '' } = useParams()
+  const { isAdmin } = useAuth()
   const post = usePost(slug)
   useDocumentMeta(post.data?.seoTitle ?? post.data?.title ?? 'وبلاگ', post.data?.seoDescription ?? post.data?.excerpt ?? undefined, {
     path: `/blog/${encodeURIComponent(slug)}`,
@@ -125,6 +127,11 @@ export function BlogPostPage() {
       <ButtonLink to="/blog" variant="ghost" size="sm" className="mb-3">
         همه‌ی نوشته‌ها
       </ButtonLink>
+      {isAdmin && (
+        <ButtonLink to={`/admin/blog/${article.id}`} variant="secondary" size="sm" className="mb-3 ms-1">
+          ویرایش نوشته
+        </ButtonLink>
+      )}
 
       <header>
         <h1 className="text-2xl font-extrabold leading-9 sm:text-3xl">{article.title}</h1>

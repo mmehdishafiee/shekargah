@@ -3,8 +3,10 @@ import type { RouteObject } from 'react-router'
 import { RequireAdmin, RequireAuth } from '@/auth/guards'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AboutPage } from '@/pages/AboutPage'
+import { ChangelogPage } from '@/pages/ChangelogPage'
 import { ContactPage, FaqPage, HelpPage, SponsorPage } from '@/pages/InfoPages'
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage, SignupPage } from '@/pages/AuthPages'
+import { TelegramLoginPage } from '@/pages/TelegramLoginPage'
 import { DailyPage } from '@/pages/DailyPage'
 import { HomePage } from '@/pages/HomePage'
 import { LeaderboardPage } from '@/pages/LeaderboardPage'
@@ -38,6 +40,7 @@ const AdminCompaniesPage = lazy(() => import('@/pages/admin/AdminCompaniesPage')
 const AdminNewsletterPage = lazy(() => import('@/pages/admin/AdminNewsletterPage').then((m) => ({ default: m.AdminNewsletterPage })))
 const AdminBannedWordsPage = lazy(() => import('@/pages/admin/AdminBannedWordsPage').then((m) => ({ default: m.AdminBannedWordsPage })))
 const AdminProductEditPage = lazy(() => import('@/pages/admin/AdminProductEditPage').then((m) => ({ default: m.AdminProductEditPage })))
+const AdminInboxPage = lazy(() => import('@/pages/admin/AdminInboxPage').then((m) => ({ default: m.AdminInboxPage })))
 
 const load = (element: ReactNode) => <Suspense fallback={<PageLoader />}>{element}</Suspense>
 
@@ -64,13 +67,16 @@ export const routes: RouteObject[] = [
       { path: 'dashboard', element: <RequireAuth><DashboardPage /></RequireAuth> },
       { path: 'notifications', element: <RequireAuth><NotificationsPage /></RequireAuth> },
       { path: 'products/:slug', element: <ProductPage /> },
+      { path: 'products/:slug/edit', element: <RequireAuth>{load(<AdminProductEditPage />)}</RequireAuth> },
       { path: 'u/:username', element: <ProfilePage /> },
       { path: 'about', element: <AboutPage /> },
+      { path: 'changelog', element: <ChangelogPage /> },
       { path: 'help', element: <HelpPage /> },
       { path: 'faq', element: <FaqPage /> },
       { path: 'contact', element: <ContactPage /> },
       { path: 'sponsor', element: <SponsorPage /> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'login/telegram', element: <TelegramLoginPage /> },
       { path: 'signup', element: <SignupPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
@@ -81,6 +87,7 @@ export const routes: RouteObject[] = [
         element: <RequireAdmin>{load(<AdminLayout />)}</RequireAdmin>,
         children: [
           { index: true, element: load(<AdminProductsPage key="pending" status="pending" />) },
+          { path: 'inbox', element: load(<AdminInboxPage />) },
           { path: 'published', element: load(<AdminProductsPage key="published" status="published" />) },
           { path: 'products/:slug/edit', element: load(<AdminProductEditPage />) },
           { path: 'rejected', element: load(<AdminProductsPage key="rejected" status="rejected" />) },

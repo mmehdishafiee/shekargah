@@ -1,5 +1,6 @@
 import { AuthError, createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, type ApiErrorCode } from '@/lib/errors'
+import { env } from '@/lib/env'
 import { toWebpFile } from '@/lib/image'
 import { normalizeFa } from '@/lib/text'
 import { parseStored } from './storage'
@@ -29,6 +30,12 @@ import {
   type TopHunter,
   type TopMaker,
   type UserCollection,
+  type ContactStatus,
+  type EditRequest,
+  type EditRequestPayload,
+  type FeatureStatus,
+  type MakerClaim,
+  type ReviewStatus,
 } from './types'
 
 // ---------------------------------------------------------------------------
@@ -283,6 +290,83 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     return supabase.storage.from(bucket).getPublicUrl(stored.path).data.publicUrl
   }
 
+  interface EditRequestRow {
+    id: string
+    product_id: string
+    product_slug: string
+    product_name: string
+    requester_id: string
+    requester_username: string
+    requester_display_name: string
+    payload: EditRequestPayload
+    note: string | null
+    status: ReviewStatus
+    review_note: string | null
+    created_at: string
+    reviewed_at: string | null
+  }
+
+  const toEditRequest = (row: EditRequestRow): EditRequest => ({
+    id: row.id,
+    productId: row.product_id,
+    productSlug: row.product_slug,
+    productName: row.product_name,
+    requester: { id: row.requester_id, username: row.requester_username, displayName: row.requester_display_name },
+    payload: row.payload,
+    note: row.note,
+    status: row.status,
+    reviewNote: row.review_note,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+  })
+
+  interface MakerClaimRow {
+    id: string
+    product_id: string
+    product_slug: string
+    product_name: string
+    claimant_id: string
+    claimant_username: string
+    claimant_display_name: string
+    proof: string | null
+    status: ReviewStatus
+    review_note: string | null
+    created_at: string
+    reviewed_at: string | null
+  }
+
+  const toMakerClaim = (row: MakerClaimRow): MakerClaim => ({
+    id: row.id,
+    productId: row.product_id,
+    productSlug: row.product_slug,
+    productName: row.product_name,
+    claimant: { id: row.claimant_id, username: row.claimant_username, displayName: row.claimant_display_name },
+    proof: row.proof,
+    status: row.status,
+    reviewNote: row.review_note,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+  })
+
+  interface ContactRow {
+    id: string
+    name: string
+    email: string
+    subject: string
+    body: string
+    status: ContactStatus
+    created_at: string
+  }
+
+  interface FeatureRequestRow {
+    id: string
+    title: string
+    body: string | null
+    status: FeatureStatus
+    author_name: string | null
+    created_at: string
+  }
+
   interface UserCollectionRow {
     id: string
     slug: string
@@ -487,6 +571,41 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       } catch (error) {
         throw mapAuthError(error instanceof AuthError ? error : new AuthError('OAuth provider is not configured'))
       }
+    },
+
+    async signInWithTelegram(code) {
+      if (!env.telegramBotUrl) {
+        throw new ApiError('unknown', 'telegram login is not configured')
+      }
+
+      let response: Response
+      try {
+        response = await fetch(`${env.telegramBotUrl}/auth/exchange`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ code: code.trim() }),
+        })
+      } catch {
+        throw new ApiError('network')
+      }
+
+      if (!response.ok) {
+        // 400 = کد نامعتبر یا منقضی؛ 429 = درخواست زیاد
+        const code: ApiErrorCode =
+          response.status === 400 ? 'invalid_input' : response.status === 429 ? 'rate_limited' : 'unknown'
+        throw new ApiError(code, `telegram ${response.status}`)
+      }
+
+      const data = (await response.json()) as { access_token?: string; refresh_token?: string }
+      if (!data.access_token || !data.refresh_token) {
+        throw new ApiError('unknown', 'telegram tokens missing')
+      }
+
+      const { error } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      })
+      if (error) throw mapAuthError(error)
     },
 
     async signOut() {
@@ -1582,6 +1701,115 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     async setProductVerified(productId, verified) {
       const result = await supabase.rpc('set_product_verified', { p_product_id: productId, p_verified: verified })
       if (result.error) throw mapPostgrestError(result.error)
+    },
+
+    async updateMyProduct(input) {
+      checkVoid(
+        await supabase.rpc('update_my_product', {
+          p_product_id: input.id,
+          p_name: input.name.trim(),
+          p_tagline: input.tagline.trim(),
+          p_description: input.description.trim(),
+          p_website_url: input.websiteUrl.trim(),
+          p_category_id: input.categoryId,
+        }),
+      )
+    },
+
+    async submitEditRequest({ productId, payload, note }) {
+      await currentUserId()
+      checkVoid(
+        await supabase.rpc('submit_product_edit_request', {
+          p_product_id: productId,
+          p_payload: payload,
+          p_note: note ?? null,
+        }),
+      )
+    },
+
+    async uploadEditScreenshot(file) {
+      const userId = await currentUserId()
+      return upload('product-screenshots', file, userId)
+    },
+
+    async listEditRequests(status = 'pending') {
+      const rows = check(await supabase.rpc('list_product_edit_requests', { p_status: status })) as EditRequestRow[]
+      return rows.map(toEditRequest)
+    },
+
+    async reviewEditRequest({ id, approve, note }) {
+      checkVoid(
+        await supabase.rpc('review_product_edit_request', {
+          p_request_id: id,
+          p_approve: approve,
+          p_note: note ?? null,
+        }),
+      )
+    },
+
+    async submitMakerClaim({ productId, proof }) {
+      await currentUserId()
+      checkVoid(await supabase.rpc('submit_maker_claim', { p_product_id: productId, p_proof: proof ?? null }))
+    },
+
+    async listMakerClaims(status = 'pending') {
+      const rows = check(await supabase.rpc('list_maker_claims', { p_status: status })) as MakerClaimRow[]
+      return rows.map(toMakerClaim)
+    },
+
+    async reviewMakerClaim({ id, approve, note }) {
+      checkVoid(
+        await supabase.rpc('review_maker_claim', { p_claim_id: id, p_approve: approve, p_note: note ?? null }),
+      )
+    },
+
+    async submitContactMessage({ name, email, subject, body }) {
+      checkVoid(
+        await supabase.rpc('submit_contact_message', {
+          p_name: name,
+          p_email: email,
+          p_subject: subject,
+          p_body: body,
+        }),
+      )
+    },
+
+    async listContactMessages(status = 'new') {
+      const rows = check(await supabase.rpc('list_contact_messages', { p_status: status })) as ContactRow[]
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        subject: row.subject,
+        body: row.body,
+        status: row.status,
+        createdAt: row.created_at,
+      }))
+    },
+
+    async setContactMessageStatus(id, status) {
+      checkVoid(await supabase.rpc('update_contact_message_status', { p_id: id, p_status: status }))
+    },
+
+    async submitFeatureRequest({ title, body }) {
+      await currentUserId()
+      checkVoid(await supabase.rpc('submit_feature_request', { p_title: title, p_body: body ?? null }))
+    },
+
+    async listFeatureRequests(status = null) {
+      const rows = check(await supabase.rpc('list_feature_requests', { p_status: status })) as FeatureRequestRow[]
+      return rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        body: row.body,
+        status: row.status,
+        authorName: row.author_name,
+        createdAt: row.created_at,
+      }))
+    },
+
+    async setFeatureRequestStatus(id, status) {
+      checkVoid(await supabase.rpc('update_feature_request_status', { p_id: id, p_status: status }))
     },
 
     async adminSetRole(profileId, role) {

@@ -74,7 +74,7 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
         setErrors(found)
         throw new Error('validation')
       }
-      await api.adminUpdateProduct({ id: product.id, ...values, categoryId: values.categoryId })
+      await api.updateMyProduct({ id: product.id, ...values, categoryId: values.categoryId })
       if (logo) await api.setProductLogo(product.id, logo)
       await api.setProductCredit(product.id, {
         role: credit.role,

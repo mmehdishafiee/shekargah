@@ -2,7 +2,9 @@
 // language models (https://llmstxt.org). Built from the same public API as the
 // sitemap; falls back to the static page list when the API is unreachable.
 
-const SITE = 'https://shekargah.mmehdi.ir'
+import { siteUrl } from './site.mjs'
+
+const SITE = siteUrl()
 
 const PAGES = [
   ['صفحه‌ی اصلی', '/', 'تازه‌ترین محصولات ایرانی با رأی کاربران.'],
@@ -15,6 +17,7 @@ const PAGES = [
   ['سازندگان', '/makers', 'سازندگان و شکارچیان برتر جامعه.'],
   ['وبلاگ', '/blog', 'نوشته‌ها درباره‌ی محصول، کشف و ساخت.'],
   ['درباره‌ی شکارگاه', '/about', 'شکارگاه چیست و چطور کار می‌کند.'],
+  ['تغییرات شکارگاه', '/changelog', 'تاریخچه‌ی تغییرات و درخواست قابلیت تازه.'],
   ['راهنما', '/help', 'راهنمای استفاده، معرفی محصول و رأی دادن.'],
   ['سوالات متداول', '/faq', 'پاسخ پرسش‌های رایج.'],
   ['تماس با ما', '/contact', 'راه‌های ارتباط با تیم شکارگاه.'],

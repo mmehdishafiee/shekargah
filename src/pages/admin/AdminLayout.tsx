@@ -3,6 +3,7 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 const TABS = [
   { to: '/admin', label: 'در انتظار بررسی', end: true },
+  { to: '/admin/inbox', label: 'صندوق ورودی' },
   { to: '/admin/published', label: 'منتشرشده' },
   { to: '/admin/rejected', label: 'ردشده' },
   { to: '/admin/reports', label: 'گزارش‌ها' },

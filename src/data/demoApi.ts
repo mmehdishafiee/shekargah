@@ -273,6 +273,10 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       throw new ApiError('unknown', 'OAuth is available only in production mode')
     },
 
+    async signInWithTelegram() {
+      throw new ApiError('unknown', 'Telegram login is available only in production mode')
+    },
+
     async signOut() {
       state.sessionUserId = null
       persist()
@@ -969,6 +973,55 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       const has = collection.savedBy.includes(user.id)
       if (saved && !has) collection.savedBy.push(user.id)
       if (!saved && has) collection.savedBy = collection.savedBy.filter((id) => id !== user.id)
+    },
+
+    // The review/inbox surfaces are real-Supabase only; the demo keeps them empty.
+    async updateMyProduct() {
+      await wait()
+    },
+    async submitEditRequest() {
+      await wait()
+    },
+    async uploadEditScreenshot() {
+      await wait()
+      return `${crypto.randomUUID()}/${crypto.randomUUID()}.webp`
+    },
+    async listEditRequests() {
+      await wait()
+      return []
+    },
+    async reviewEditRequest() {
+      await wait()
+    },
+    async submitMakerClaim() {
+      await wait()
+    },
+    async listMakerClaims() {
+      await wait()
+      return []
+    },
+    async reviewMakerClaim() {
+      await wait()
+    },
+    async submitContactMessage() {
+      await wait()
+    },
+    async listContactMessages() {
+      await wait()
+      return []
+    },
+    async setContactMessageStatus() {
+      await wait()
+    },
+    async submitFeatureRequest() {
+      await wait()
+    },
+    async listFeatureRequests() {
+      await wait()
+      return []
+    },
+    async setFeatureRequestStatus() {
+      await wait()
     },
 
     async reportContent({ productId, commentId, reason, details }) {

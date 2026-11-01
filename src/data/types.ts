@@ -394,6 +394,11 @@ export interface ShekargahApi {
   signUp(input: { email: string; password: string; displayName: string }): Promise<{ needsConfirmation: boolean }>
   signIn(input: { email: string; password: string }): Promise<void>
   signInWithOAuth(provider: OAuthProvider, redirectTo: string): Promise<void>
+  /**
+   * Exchanges a one-time code from the Telegram bot for a Supabase session.
+   * The code is minted inside the bot (and expires in 10 minutes).
+   */
+  signInWithTelegram(code: string): Promise<void>
   signOut(): Promise<void>
   requestPasswordReset(email: string): Promise<void>
   updatePassword(password: string): Promise<void>
@@ -517,4 +522,79 @@ export interface ShekargahApi {
   adminSetRole(profileId: string, role: Role): Promise<void>
   /** Grant or remove the "بررسی‌شده توسط انسان" mark. Admin only. */
   setProductVerified(productId: string, verified: boolean): Promise<void>
+
+  /** Maker edit + review inbox. */
+  updateMyProduct(input: { id: string; name: string; tagline: string; description: string; websiteUrl: string; categoryId: string }): Promise<void>
+  submitEditRequest(input: { productId: string; payload: EditRequestPayload; note?: string | null }): Promise<void>
+  uploadEditScreenshot(file: File): Promise<string>
+  listEditRequests(status?: ReviewStatus): Promise<EditRequest[]>
+  reviewEditRequest(input: { id: string; approve: boolean; note?: string | null }): Promise<void>
+  submitMakerClaim(input: { productId: string; proof?: string | null }): Promise<void>
+  listMakerClaims(status?: ReviewStatus): Promise<MakerClaim[]>
+  reviewMakerClaim(input: { id: string; approve: boolean; note?: string | null }): Promise<void>
+  submitContactMessage(input: { name: string; email: string; subject: string; body: string }): Promise<void>
+  listContactMessages(status?: ContactStatus): Promise<ContactMessage[]>
+  setContactMessageStatus(id: string, status: ContactStatus): Promise<void>
+  submitFeatureRequest(input: { title: string; body?: string | null }): Promise<void>
+  listFeatureRequests(status?: FeatureStatus | null): Promise<FeatureRequest[]>
+  setFeatureRequestStatus(id: string, status: FeatureStatus): Promise<void>
+}
+
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+export type ContactStatus = 'new' | 'read' | 'archived'
+export type FeatureStatus = 'new' | 'planned' | 'done' | 'declined'
+
+export interface EditRequestPayload {
+  name?: string
+  tagline?: string
+  description?: string
+  website_url?: string
+  category_id?: string
+  screenshots?: { object_key: string; alt?: string | null }[]
+}
+
+export interface EditRequest {
+  id: string
+  productId: string
+  productSlug: string
+  productName: string
+  requester: { id: string; username: string; displayName: string }
+  payload: EditRequestPayload
+  note: string | null
+  status: ReviewStatus
+  reviewNote: string | null
+  createdAt: string
+  reviewedAt: string | null
+}
+
+export interface MakerClaim {
+  id: string
+  productId: string
+  productSlug: string
+  productName: string
+  claimant: { id: string; username: string; displayName: string }
+  proof: string | null
+  status: ReviewStatus
+  reviewNote: string | null
+  createdAt: string
+  reviewedAt: string | null
+}
+
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  subject: string
+  body: string
+  status: ContactStatus
+  createdAt: string
+}
+
+export interface FeatureRequest {
+  id: string
+  title: string
+  body: string | null
+  status: FeatureStatus
+  authorName: string | null
+  createdAt: string
 }

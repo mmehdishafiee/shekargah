@@ -37,6 +37,7 @@ const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
       { to: '/help', label: 'راهنما' },
       { to: '/faq', label: 'سوالات متداول' },
       { to: '/contact', label: 'تماس با ما' },
+      { to: '/changelog', label: 'تغییرات شکارگاه' },
     ],
   },
   {

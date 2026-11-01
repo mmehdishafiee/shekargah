@@ -23,9 +23,10 @@ import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { profilePath } from '@/lib/paths'
 import { hostnameOf } from '@/lib/text'
-import { productSchema, useDocumentMeta } from '@/lib/useDocumentMeta'
+import { productSchema, SITE_URL, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { CommentSection } from '@/components/product/CommentSection'
 import { ProductLogo } from '@/components/product/ProductLogo'
+import { ProductActionsExtra } from '@/components/product/ProductActionsExtra'
 import { RatingStars } from '@/components/product/RatingStars'
 import { ReviewSection } from '@/components/product/ReviewSection'
 import { ScreenshotGallery } from '@/components/product/ScreenshotGallery'
@@ -95,7 +96,7 @@ function ProductDetails({ product }: { product: Product }) {
       ? productSchema({
           name: product.name,
           description: product.tagline,
-          url: `https://shekargah.mmehdi.ir/products/${encodeURIComponent(product.slug)}`,
+          url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
           category: product.category?.name ?? null,
           ratingAverage: product.ratingAvg,
           ratingCount: product.ratingCount,
@@ -222,6 +223,8 @@ function ProductDetails({ product }: { product: Product }) {
                 </>
               )}
             </div>
+
+            <ProductActionsExtra product={product} />
           </div>
         </header>
 
