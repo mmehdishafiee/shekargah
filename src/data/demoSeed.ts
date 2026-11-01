@@ -25,6 +25,9 @@ export interface DemoProduct {
   websiteUrl: string
   logoUrl: string | null
   screenshots: { url: string; key: string; alt: string | null }[]
+  creditRole: 'maker' | 'hunter'
+  makerCreditName: string | null
+  companyId: string | null
   categoryId: string
   makerId: string
   status: ProductStatus
@@ -35,6 +38,9 @@ export interface DemoProduct {
   votesCount: number
   commentsCount: number
   viewsCount: number
+  ratingAvg: number
+  ratingCount: number
+  verified: boolean
   createdAt: string
 }
 
@@ -84,6 +90,68 @@ export interface DemoReport {
   createdAt: string
 }
 
+export interface DemoReview {
+  id: string
+  productId: string
+  authorId: string
+  rating: number
+  body: string | null
+  createdAt: string
+}
+
+export interface DemoNotification {
+  id: string
+  userId: string
+  kind: 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system'
+  productId: string | null
+  actorId: string | null
+  body: string | null
+  readAt: string | null
+  createdAt: string
+}
+
+export interface DemoSponsor {
+  id: string
+  name: string
+  tagline: string | null
+  url: string
+  logoUrl: string | null
+  sortOrder: number
+  isActive: boolean
+}
+
+export interface DemoCollection {
+  slug: string
+  name: string
+  description: string | null
+  productIds: string[]
+}
+
+export interface DemoCompany {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  websiteUrl: string | null
+  memberIds: string[]
+}
+
+export interface DemoPost {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  content: string
+  seoTitle: string | null
+  seoDescription: string | null
+  tags: string[]
+  status: 'draft' | 'published'
+  authorId: string | null
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface DemoState {
   version: 2
   users: DemoUser[]
@@ -93,9 +161,17 @@ export interface DemoState {
   products: DemoProduct[]
   votes: DemoVote[]
   comments: DemoComment[]
+  reviews: DemoReview[]
+  notifications: DemoNotification[]
+  sponsors: DemoSponsor[]
   reports: DemoReport[]
   saved: DemoSave[]
   views: DemoProductView[]
+  newsletter: string[]
+  posts: DemoPost[]
+  companies: DemoCompany[]
+  collections: DemoCollection[]
+  bannedWords: string[]
   sessionUserId: string | null
 }
 
@@ -330,6 +406,11 @@ const CATEGORY_IDS: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(([slug], index) => [slug, `c-${String(index + 1).padStart(2, '0')}`]),
 )
 
+const SPONSORS: [string, string, string][] = [
+  ['ابری ایرانی', 'میزبانی و زیرساخت برای محصولات فارسی', 'https://example.com/cloud'],
+  ['پرداخت آسان', 'درگاه پرداخت برای استارتاپ‌ها', 'https://example.com/pay'],
+]
+
 const TAGS: [string, string][] = [
   ['open-source','متن‌باز'],
   ['ai','هوش مصنوعی'],
@@ -393,6 +474,9 @@ export function createDemoState(now: Date = new Date()): DemoState {
         websiteUrl: `https://example.com/${index + 1}`,
         logoUrl: null,
         screenshots: [],
+        creditRole: 'maker',
+        makerCreditName: null,
+        companyId: null,
         categoryId: CATEGORY_IDS[category]!,
         makerId: maker,
         status,
@@ -403,6 +487,9 @@ export function createDemoState(now: Date = new Date()): DemoState {
         votesCount: votes,
         commentsCount: 0,
         viewsCount: Math.max(12, votes + (index + 1) * 7),
+        ratingAvg: 0,
+        ratingCount: 0,
+        verified: index % 5 === 0,
         createdAt: created,
       }
     },
@@ -457,5 +544,43 @@ export function createDemoState(now: Date = new Date()): DemoState {
     { productId: p.id, viewerKey: `seed-${p.id}`, createdAt: ago(1) },
   ])
 
-  return { version: 2, users, categories, tags, productTags, products, votes: [], comments, reports, saved: [], views, sessionUserId: null }
+  return {
+    version: 2,
+    users,
+    categories,
+    tags,
+    productTags,
+    products,
+    votes: [],
+    comments,
+    reviews: [],
+    notifications: [],
+    sponsors: SPONSORS.map(([name, tagline, url], index) => ({
+      id: `sp-${index + 1}`,
+      name,
+      tagline,
+      url,
+      logoUrl: null,
+      sortOrder: index * 10,
+      isActive: true,
+    })),
+    reports,
+    saved: [],
+    views,
+    newsletter: [],
+    posts: [],
+    companies: [
+      { id: 'co-1', slug: 'shekargah-labs', name: 'آزمایشگاه شکارگاه', description: 'تیم سازنده‌ی محصولات آزمایشی.', websiteUrl: 'https://example.com/labs', memberIds: ['u-sara'] },
+    ],
+    collections: [
+      {
+        slug: 'editors-pick',
+        name: 'انتخاب سردبیر',
+        description: 'محصولاتی که کیفیتشان چشمگیر بوده است.',
+        productIds: products.filter((p) => p.status === 'published').slice(0, 3).map((p) => p.id),
+      },
+    ],
+    bannedWords: [],
+    sessionUserId: null,
+  }
 }

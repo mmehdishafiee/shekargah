@@ -35,6 +35,22 @@ export function useTags() {
   return useQuery({ queryKey: keys.tags(), queryFn: () => api.listTags(), staleTime: 5 * 60_000 })
 }
 
+export function useTopics() {
+  const api = useApi()
+  return useQuery({ queryKey: ['topics'], queryFn: () => api.listTopics(), staleTime: 2 * 60_000 })
+}
+
+export function useTopMakers() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['top-makers'],
+    queryFn: ({ pageParam }) => api.listTopMakers(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    placeholderData: keepPreviousData,
+  })
+}
+
 export function useProductFeed(query: Omit<ProductQuery, 'page'>) {
   const api = useApi()
   return useInfiniteQuery({
@@ -131,6 +147,43 @@ export function useComments(productId: string | undefined) {
   })
 }
 
+export function useReviews(productId: string | undefined) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['reviews', productId ?? ''],
+    queryFn: () => api.listReviews(productId!),
+    enabled: Boolean(productId),
+  })
+}
+
+export function useSponsors() {
+  const api = useApi()
+  return useQuery({ queryKey: ['sponsors'], queryFn: () => api.listSponsors(), staleTime: 5 * 60_000 })
+}
+
+export function useNotifications() {
+  const api = useApi()
+  const { session } = useAuth()
+  return useInfiniteQuery({
+    queryKey: ['notifications', session?.userId ?? null],
+    queryFn: ({ pageParam }) => api.listNotifications(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    enabled: Boolean(session),
+  })
+}
+
+export function useUnreadNotifications() {
+  const api = useApi()
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: ['notifications-unread', session?.userId ?? null],
+    queryFn: () => api.unreadNotificationCount(),
+    enabled: Boolean(session),
+    staleTime: 30_000,
+  })
+}
+
 export function useProfileByUsername(username: string) {
   const api = useApi()
   return useQuery({ queryKey: keys.profile(username), queryFn: () => api.getProfileByUsername(username) })
@@ -159,4 +212,129 @@ export function useAdminProducts(status: ProductStatus) {
 export function useReports(filter: 'open' | 'all') {
   const api = useApi()
   return useQuery({ queryKey: keys.reports(filter), queryFn: () => api.listReports(filter) })
+}
+
+export function useCollections() {
+  const api = useApi()
+  return useQuery({ queryKey: ['collections'], queryFn: () => api.listCollections(), staleTime: 2 * 60_000 })
+}
+
+export function useCollectionProducts(slug: string) {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['collection', slug],
+    queryFn: ({ pageParam }) => api.listCollectionProducts(slug, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    enabled: Boolean(slug),
+  })
+}
+
+export function usePersonalFeed() {
+  const api = useApi()
+  const { session } = useAuth()
+  return useInfiniteQuery({
+    queryKey: ['personal-feed', session?.userId ?? null],
+    queryFn: ({ pageParam }) => api.listPersonalFeed(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    enabled: Boolean(session),
+  })
+}
+
+export function useAdminUsers(query: string) {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['admin-users', query],
+    queryFn: ({ pageParam }) => api.listUsersOverview(query, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+  })
+}
+
+export function useBannedWords() {
+  const api = useApi()
+  return useQuery({ queryKey: ['banned-words'], queryFn: () => api.listBannedWords() })
+}
+
+export function useCompanies() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['companies'],
+    queryFn: ({ pageParam }) => api.listCompanies(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+  })
+}
+
+export function useCompany(slug: string | undefined) {
+  const api = useApi()
+  return useQuery({ queryKey: ['company', slug ?? ''], queryFn: () => api.getCompany(slug!), enabled: Boolean(slug) })
+}
+
+export function useCompanyProducts(slug: string | undefined) {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['company-products', slug ?? ''],
+    queryFn: ({ pageParam }) => api.listCompanyProducts(slug!, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    enabled: Boolean(slug),
+  })
+}
+
+export function useNewsletterSubscribers() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['newsletter-subscribers'],
+    queryFn: ({ pageParam }) => api.listNewsletterSubscribers(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+  })
+}
+
+export function usePosts() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['posts'],
+    queryFn: ({ pageParam }) => api.listPosts(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+  })
+}
+
+export function usePost(slug: string | undefined) {
+  const api = useApi()
+  return useQuery({ queryKey: ['post', slug ?? ''], queryFn: () => api.getPost(slug!), enabled: Boolean(slug) })
+}
+
+export function useSiteStats() {
+  const api = useApi()
+  return useQuery({ queryKey: ['site-stats'], queryFn: () => api.siteStats(), staleTime: 5 * 60_000 })
+}
+
+export function useAdminPosts() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['admin-posts'],
+    queryFn: ({ pageParam }) => api.adminListPosts(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+  })
+}
+
+export function useAdminPost(id: string | undefined) {
+  const api = useApi()
+  return useQuery({ queryKey: ['admin-post', id ?? ''], queryFn: () => api.adminGetPost(id!), enabled: Boolean(id) })
+}
+
+export function useTopHunters() {
+  const api = useApi()
+  return useInfiniteQuery({
+    queryKey: ['top-hunters'],
+    queryFn: ({ pageParam }) => api.listTopHunters(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
+    placeholderData: keepPreviousData,
+  })
 }

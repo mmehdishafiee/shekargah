@@ -1,11 +1,15 @@
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { PackageSearch, Plus } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
-import { useCategories, useMySavedIds, useMyVotes, useProductFeed } from '@/data/queries'
+import { useCategories, useMySavedIds, useMyVotes, useProductFeed, useSiteStats, useSponsors, useTopics, useTopMakers } from '@/data/queries'
 import type { SortOrder } from '@/data/types'
-import { formatNumber } from '@/lib/format'
-import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { formatIsoDay, formatNumber } from '@/lib/format'
+import { tehranDateLabel } from '@/lib/engagement'
+import { useDocumentMeta, websiteSchema } from '@/lib/useDocumentMeta'
+import { profilePath } from '@/lib/paths'
 import { ProductRow } from '@/components/product/ProductRow'
+import { Avatar } from '@/components/ui/Avatar'
+import { SponsorCard } from '@/components/product/SponsorCard'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { EmptyState, ErrorState, ProductRowSkeleton } from '@/components/ui/Feedback'
 import { cardClass } from '@/components/ui/styles'
@@ -32,10 +36,18 @@ export function HomePage() {
   const total = feed.data?.pages[0]?.total ?? 0
   const votes = useMyVotes(products.map((p) => p.id))
   const saved = useMySavedIds(products.map((p) => p.id))
+  const sponsors = useSponsors()
+  const stats = useSiteStats()
+  const hotTopics = useTopics()
+  const topMakers = useTopMakers()
 
   const activeCategory = categories.data?.find((c) => c.slug === category)
   const heading = search ? `نتیجه‌های «${search}»` : (activeCategory?.name ?? 'کشف محصولات تازه')
-  useDocumentMeta(search ? `جست‌وجوی «${search}»` : activeCategory?.name, activeCategory?.description ?? undefined)
+  useDocumentMeta(search ? `جست‌وجوی «${search}»` : activeCategory?.name, activeCategory?.description ?? undefined, {
+    path: '/',
+    schema: search ? undefined : websiteSchema(),
+    robots: search ? 'noindex, follow' : undefined,
+  })
 
   const update = (key: 'sort' | 'category' | 'q', value: string | null) => {
     const next = new URLSearchParams(params)
@@ -58,6 +70,18 @@ export function HomePage() {
                 ? feed.isSuccess && `${formatNumber(total)} محصول`
                 : 'استارتاپ‌ها، اپلیکیشن‌ها و پروژه‌های متن‌باز تازه را ببین و به بهترین‌ها رأی بده.'}
             </p>
+            {!search && !activeCategory && (
+              <p className="mt-1 text-[13px] text-ink-faint">
+                {formatIsoDay(tehranDateLabel())}
+                {stats.data && (
+                  <>
+                    {' · '}
+                    {formatNumber(stats.data.products)} محصول، {formatNumber(stats.data.makers)} سازنده و{' '}
+                    {formatNumber(stats.data.votes)} رأی
+                  </>
+                )}
+              </p>
+            )}
           </div>
           <div role="group" aria-label="مرتب‌سازی" className="flex rounded-full bg-sunken p-1">
             {SORTS.map((option) => (
@@ -153,24 +177,95 @@ export function HomePage() {
         )}
       </section>
 
-      <Sidebar />
+      <Sidebar
+        sponsors={sponsors.data ?? []}
+        stats={stats.data ?? null}
+        topics={(hotTopics.data ?? []).filter((topic) => topic.productCount > 0).slice(0, 8)}
+        makers={(topMakers.data?.pages[0]?.items ?? []).slice(0, 5)}
+      />
     </div>
   )
 }
 
-function Sidebar() {
+function Sidebar({
+  sponsors,
+  stats,
+  topics,
+  makers,
+}: {
+  sponsors: { id: string; name: string; tagline: string | null; url: string; logoUrl: string | null }[]
+  stats: { products: number; makers: number; votes: number } | null
+  topics: { slug: string; name: string; productCount: number }[]
+  makers: { id: string; username: string; displayName: string; avatarUrl: string | null; productCount: number; votesTotal: number }[]
+}) {
   const { session } = useAuth()
   return (
     <aside className="mt-8 space-y-4 lg:mt-[4.25rem]">
       <div className={`${cardClass} p-5`}>
         <h2 className="text-base font-bold">محصولی ساخته‌ای؟</h2>
         <p className="mt-1.5 text-sm text-ink-muted">
-          محصولت را معرفی کن تا بعد از بررسی، در شکارگاه دیده شود و رأی بگیرد. ثبت محصول رایگان است.
+          محصولت را معرفی کن تا بعد از بررسی، در شکارگاه دیده شود و رأی بگیرد. اگر آن را نساخته‌ای ولی کشف کرده‌ای،
+          به‌عنوان شکارچی ثبتش کن.
         </p>
+        {stats && (
+          <p className="mt-2 text-[13px] text-ink-faint">
+            {formatNumber(stats.products)} محصول، {formatNumber(stats.makers)} سازنده و {formatNumber(stats.votes)} رأی تا امروز.
+          </p>
+        )}
         <ButtonLink to={session ? '/submit' : '/signup'} className="mt-4 w-full" icon={<Plus size={18} strokeWidth={2} aria-hidden />}>
-          معرفی محصول
+          {session ? 'معرفی محصول' : 'ساخت حساب و معرفی محصول'}
         </ButtonLink>
       </div>
+
+      {topics.length > 0 && (
+        <div className={`${cardClass} p-5`}>
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-base font-bold">موضوع‌های داغ</h2>
+            <Link to="/topics" className="text-[13px] font-semibold text-brand-700 hover:underline">
+              همه
+            </Link>
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {topics.map((topic) => (
+              <li key={topic.slug}>
+                <Link
+                  to={`/?category=${encodeURIComponent(topic.slug)}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px] transition-colors hover:border-line-strong"
+                >
+                  <span>{topic.name}</span>
+                  <span className="tabular-nums text-ink-muted">{formatNumber(topic.productCount)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {makers.length > 0 && (
+        <div className={`${cardClass} p-5`}>
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-base font-bold">سازندگان برتر</h2>
+            <Link to="/makers" className="text-[13px] font-semibold text-brand-700 hover:underline">
+              همه
+            </Link>
+          </div>
+          <ul className="mt-3 space-y-2.5">
+            {makers.map((maker) => (
+              <li key={maker.id}>
+                <Link to={profilePath(maker.username)} className="flex items-center gap-2.5 rounded-lg hover:opacity-80">
+                  <Avatar name={maker.displayName} seed={maker.id} url={maker.avatarUrl} size={34} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{maker.displayName}</span>
+                    <span className="block text-[12px] text-ink-muted">
+                      {formatNumber(maker.productCount)} محصول · {formatNumber(maker.votesTotal)} رأی
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="rounded-card border border-line/70 p-5">
         <h2 className="text-sm font-bold">مسیر انتشار یک محصول</h2>
         <ol className="mt-3 space-y-3 text-sm text-ink-muted">
@@ -191,6 +286,14 @@ function Sidebar() {
           ))}
         </ol>
       </div>
+    {sponsors.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="px-1 text-sm font-bold">حامیان شکارگاه</h2>
+          {sponsors.map((sponsor) => (
+            <SponsorCard key={sponsor.id} sponsor={sponsor} />
+          ))}
+        </div>
+      )}
     </aside>
   )
 }

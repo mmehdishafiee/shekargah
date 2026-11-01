@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { CalendarDays, ExternalLink, Flag, Globe, PackageX, Tag } from 'lucide-react'
+import { CalendarDays, ExternalLink, Flag, Globe, PackageX, Rocket, Tag } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
 import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
-import { formatDate } from '@/lib/format'
+import { formatDate, formatNumber } from '@/lib/format'
 import { profilePath } from '@/lib/paths'
 import { hostnameOf } from '@/lib/text'
-import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { productSchema, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { CommentSection } from '@/components/product/CommentSection'
 import { ProductLogo } from '@/components/product/ProductLogo'
+import { RatingStars } from '@/components/product/RatingStars'
+import { ReviewSection } from '@/components/product/ReviewSection'
+import { VerifiedBadge } from '@/components/product/VerifiedBadge'
 import { ReportDialog } from '@/components/product/ReportDialog'
 import { SaveButton } from '@/components/product/SaveButton'
 import { ShareButton } from '@/components/product/ShareButton'
@@ -53,7 +56,23 @@ function ProductDetails({ product }: { product: Product }) {
   const [reporting, setReporting] = useState(false)
   const isPublished = product.status === 'published'
   const isMaker = session?.userId === product.maker.id
-  useDocumentMeta(product.name, product.tagline)
+  useDocumentMeta(product.name, product.tagline, {
+    path: `/products/${encodeURIComponent(product.slug)}`,
+    type: 'product',
+    image: product.logoUrl,
+    robots: isPublished ? undefined : 'noindex',
+    schema: isPublished
+      ? productSchema({
+          name: product.name,
+          description: product.tagline,
+          url: `https://shekargah.mmehdi.ir/products/${encodeURIComponent(product.slug)}`,
+          category: product.category?.name ?? null,
+          ratingAverage: product.ratingAvg,
+          ratingCount: product.ratingCount,
+          logo: product.logoUrl,
+        })
+      : undefined,
+  })
 
   useEffect(() => {
     if (!isPublished) return
@@ -86,8 +105,18 @@ function ProductDetails({ product }: { product: Product }) {
             <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
               <ViewCount count={product.viewsCount} />
             </div>
-            <h1 className="mt-1 text-2xl font-extrabold leading-tight sm:text-[28px]">{product.name}</h1>
-            <p className="mt-1.5 text-base text-ink-muted sm:text-lg">{product.tagline}</p>
+            <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-extrabold leading-tight sm:text-[28px]">
+              {product.name}
+              {product.verified && <VerifiedBadge withLabel />}
+            </h1>
+            <p className="bidi mt-1.5 text-base text-ink-muted sm:text-lg">{product.tagline}</p>
+            {product.ratingCount > 0 && (
+              <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
+                <RatingStars value={product.ratingAvg} />
+                <span className="font-semibold text-ink">{formatNumber(product.ratingAvg)}</span>
+                <span>({formatNumber(product.ratingCount)} نقد)</span>
+              </p>
+            )}
             {product.tags.length > 0 && <div className="mt-3"><TagChips tags={product.tags} /></div>}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a
@@ -123,7 +152,7 @@ function ProductDetails({ product }: { product: Product }) {
         </header>
 
         <section aria-label="توضیحات محصول" className={`${cardClass} p-5 sm:p-6`}>
-          <p dir="auto" className="whitespace-pre-line break-words text-[15px] leading-8">
+          <p className="bidi whitespace-pre-line break-words text-[15px] leading-8">
             {product.description}
           </p>
         </section>
@@ -145,6 +174,12 @@ function ProductDetails({ product }: { product: Product }) {
           </section>
         )}
 
+        {isPublished && (
+          <div className={`${cardClass} p-5 sm:p-6`}>
+            <ReviewSection productId={product.id} productName={product.name} />
+          </div>
+        )}
+
         <div className={`${cardClass} p-5 sm:p-6`}>
           <CommentSection productId={product.id} slug={product.slug} open={isPublished} />
         </div>
@@ -152,14 +187,52 @@ function ProductDetails({ product }: { product: Product }) {
 
       <aside className="mt-6 space-y-4 lg:mt-0">
         <div className={`${cardClass} p-5`}>
-          <h2 className="text-sm font-bold text-ink-muted">سازنده</h2>
-          <Link to={profilePath(product.maker.username)} className="mt-3 flex items-center gap-3 rounded-lg hover:opacity-80">
-            <Avatar name={product.maker.displayName} seed={product.maker.id} url={product.maker.avatarUrl} size={44} />
-            <span className="min-w-0">
-              <span className="block truncate font-semibold">{product.maker.displayName}</span>
-              <span className="ltr block truncate text-start text-xs text-ink-muted">@{product.maker.username}</span>
-            </span>
-          </Link>
+          {product.creditRole === 'hunter' ? (
+            <>
+              <h2 className="text-sm font-bold text-ink-muted">سازنده‌ی محصول</h2>
+              {product.makerCredit ? (
+                <Link to={profilePath(product.makerCredit.username)} className="mt-3 flex items-center gap-3 rounded-lg hover:opacity-80">
+                  <Avatar name={product.makerCredit.displayName} seed={product.makerCredit.id} url={product.makerCredit.avatarUrl} size={44} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{product.makerCredit.displayName}</span>
+                    <span className="ltr block truncate text-start text-xs text-ink-muted">@{product.makerCredit.username}</span>
+                  </span>
+                </Link>
+              ) : (
+                <p className="mt-3 flex items-center gap-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sunken text-ink-muted">
+                    <Rocket size={18} strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <span dir="auto" className="font-semibold">
+                    {product.makerCreditName ?? 'ناشناس'}
+                  </span>
+                </p>
+              )}
+              {product.hunter && (
+                <div className="mt-4 border-t border-line/70 pt-4">
+                  <h2 className="text-sm font-bold text-ink-muted">شکارچی</h2>
+                  <Link to={profilePath(product.hunter.username)} className="mt-3 flex items-center gap-3 rounded-lg hover:opacity-80">
+                    <Avatar name={product.hunter.displayName} seed={product.hunter.id} url={product.hunter.avatarUrl} size={40} />
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{product.hunter.displayName}</span>
+                      <span className="ltr block truncate text-start text-xs text-ink-muted">@{product.hunter.username}</span>
+                    </span>
+                  </Link>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-sm font-bold text-ink-muted">سازنده</h2>
+              <Link to={profilePath(product.maker.username)} className="mt-3 flex items-center gap-3 rounded-lg hover:opacity-80">
+                <Avatar name={product.maker.displayName} seed={product.maker.id} url={product.maker.avatarUrl} size={44} />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{product.maker.displayName}</span>
+                  <span className="ltr block truncate text-start text-xs text-ink-muted">@{product.maker.username}</span>
+                </span>
+              </Link>
+            </>
+          )}
         </div>
 
         <dl className={`${cardClass} space-y-3.5 p-5 text-sm`}>
@@ -183,6 +256,16 @@ function ProductDetails({ product }: { product: Product }) {
             </dt>
             <dd className="ms-auto font-medium">{formatDate(product.publishedAt ?? product.createdAt)}</dd>
           </div>
+          {product.company && (
+            <div className="flex items-center gap-3">
+              <dt className="flex items-center gap-2 text-ink-muted">شرکت</dt>
+              <dd className="ms-auto min-w-0">
+                <Link to={`/companies/${encodeURIComponent(product.company.slug)}`} className="block truncate font-medium hover:text-brand-700">
+                  {product.company.name}
+                </Link>
+              </dd>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <dt className="flex items-center gap-2 text-ink-muted">
               <Globe size={16} strokeWidth={1.75} aria-hidden />

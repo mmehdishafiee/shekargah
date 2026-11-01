@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/vazirmatn';
 
+/* Dark theme is applied by toggling `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Shekargah design tokens.
  * Every color, radius and shadow used by the UI is defined here so the brand
@@ -52,18 +55,76 @@
     text-size-adjust: 100%;
   }
 
+  /*
+   * Dark theme: override the same semantic tokens, so every component that uses
+   * bg-surface / text-ink / border-line re-themes without per-component changes.
+   */
+  .dark {
+    --color-canvas: #0d0d0f;
+    --color-surface: #161619;
+    --color-sunken: #1e1e23;
+    --color-line: #2a2a31;
+    --color-line-strong: #3a3a44;
+    --color-ink: #f4f4f5;
+    --color-ink-muted: #a6a6b0;
+    --color-ink-faint: #7c7c88;
+
+    --color-brand-50: #2b1a11;
+    --color-brand-100: #3d2315;
+    --color-brand-200: #5a3220;
+    --color-brand-500: #f0763a;
+    --color-brand-600: #ef6c2c;
+    --color-brand-700: #ff8a4d;
+    --color-brand-800: #ffb083;
+
+    --color-success-50: #0d2a1d;
+    --color-success-700: #6ee7a8;
+    --color-warning-50: #2c2110;
+    --color-warning-700: #fbbf5c;
+    --color-danger-50: #2c1512;
+    --color-danger-600: #f97066;
+    --color-danger-700: #ff9c92;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 8px 24px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.35);
+
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-canvas text-ink font-sans antialiased;
     font-size: 15px;
     line-height: 1.6;
   }
 
-  /* Latin fragments (URLs, emails, code) keep their own direction. */
+  /* Latin fragments (URLs, emails, code, handles) keep their own direction
+     and stay isolated so they cannot flip surrounding Persian text. */
   code,
   kbd,
   .ltr {
     direction: ltr;
     unicode-bidi: isolate;
+  }
+
+  /*
+   * Mixed-direction user content (a Persian sentence containing a model name,
+   * a number or a Latin brand) should take its direction from its own first
+   * strong character instead of the layout direction.
+   */
+  .bidi {
+    unicode-bidi: plaintext;
+    text-align: start;
+  }
+
+  /* Long unbroken Latin strings must not overflow their card. */
+  .bidi,
+  .bidi * {
+    overflow-wrap: anywhere;
+  }
+
+  /* Keep Persian punctuation attached to the correct side in RTL runs. */
+  .fa-num {
+    font-variant-numeric: normal;
   }
 
   :focus-visible {

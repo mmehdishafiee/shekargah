@@ -43,6 +43,9 @@ describe('validation', () => {
     tags: [] as string[],
     logo: null,
     screenshots: [] as File[],
+    creditRole: 'maker' as const,
+    makerCreditUsername: '',
+    makerCreditName: '',
   }
 
   it('accepts a complete product', () => {

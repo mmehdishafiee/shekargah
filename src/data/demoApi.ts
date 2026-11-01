@@ -128,6 +128,9 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     votesCount: p.votesCount,
     commentsCount: p.commentsCount,
     viewsCount: p.viewsCount,
+    ratingAvg: p.ratingAvg,
+    ratingCount: p.ratingCount,
+    verified: p.verified,
     publishedAt: p.publishedAt,
     category: categoryRef(p.categoryId),
     tags: tagRefs(p.id),
@@ -138,6 +141,11 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     websiteUrl: p.websiteUrl,
     status: p.status,
     maker: toSummary(userById(p.makerId)!),
+    creditRole: p.creditRole,
+    makerCredit: null,
+    makerCreditName: p.makerCreditName,
+    hunter: p.creditRole === 'hunter' ? toSummary(userById(p.makerId)!) : null,
+    company: null,
     screenshots: [],
     moderationNote: p.moderationNote,
     moderatedAt: p.moderatedAt,
@@ -156,6 +164,14 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     if (!product || product.status !== 'published') throw new ApiError('not_authorized', 'product is not published')
     return product
   }
+  const votedProducts = (userId: string | undefined) =>
+    userId
+      ? state.votes
+          .filter((vote) => vote.userId === userId)
+          .map((vote) => state.products.find((product) => product.id === vote.productId))
+          .filter((product): product is DemoProduct => Boolean(product))
+      : []
+
   const emit = (event: AuthEvent) => {
     const user = current()
     const session = user ? { userId: user.id, email: user.email } : null
@@ -269,6 +285,60 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       return state.tags.map((tag) => ({ ...tag }))
     },
 
+    async listTopics() {
+      await wait()
+      const sevenDaysAgo = Date.now() - 7 * 24 * 3600 * 1000
+      return state.categories
+        .filter((category) => category.isActive)
+        .map((category) => {
+          const products = state.products.filter((p) => p.categoryId === category.id && p.status === 'published')
+          const ids = new Set(products.map((p) => p.id))
+          const recentVotes = state.votes.filter((v) => ids.has(v.productId) && new Date(v.createdAt).getTime() > sevenDaysAgo).length
+          return {
+            slug: category.slug,
+            name: category.name,
+            description: category.description,
+            productCount: products.length,
+            recentVotes,
+          }
+        })
+        .sort((a, b) => b.recentVotes - a.recentVotes || b.productCount - a.productCount || a.name.localeCompare(b.name, 'fa'))
+    },
+
+    async listTopMakers(page) {
+      await wait()
+      const scored = state.users
+        .map((user) => {
+          const products = state.products.filter((p) => p.makerId === user.id && p.status === 'published')
+          return {
+            user,
+            productCount: products.length,
+            votesTotal: products.reduce((total, product) => total + product.votesCount, 0),
+          }
+        })
+        .filter((row) => row.productCount > 0)
+        .sort((a, b) => b.votesTotal - a.votesTotal || b.productCount - a.productCount || a.user.username.localeCompare(b.user.username))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = scored.slice(start, start + PAGE_SIZE).map((row, index) => ({
+        id: row.user.id,
+        username: row.user.username,
+        displayName: row.user.displayName,
+        avatarUrl: row.user.avatarUrl,
+        productCount: row.productCount,
+        votesTotal: row.votesTotal,
+        rank: start + index + 1,
+      }))
+      return { items, total: scored.length, hasMore: start + PAGE_SIZE < scored.length }
+    },
+
+    async subscribeNewsletter({ email }) {
+      await wait()
+      const value = email.trim().toLowerCase()
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) throw new ApiError('invalid_input')
+      if (!state.newsletter.includes(value)) state.newsletter.push(value)
+      persist()
+    },
+
     async listProducts({ search, category, tags, sort, page }) {
       await wait()
       const term = normalizeFa(search?.trim() ?? '').toLowerCase()
@@ -331,6 +401,9 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         description: normalizeFa(input.description.trim()),
         websiteUrl: input.websiteUrl.trim(),
         logoUrl: input.logo ? await readAsDataUrl(input.logo) : null,
+        creditRole: input.credit?.role ?? 'maker',
+        makerCreditName: input.credit?.role === 'hunter' ? (input.credit.makerName?.trim() || 'ناشناس') : null,
+        companyId: null,
         screenshots: [],
         categoryId: input.categoryId,
         makerId: user.id,
@@ -342,6 +415,9 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         votesCount: 0,
         commentsCount: 0,
         viewsCount: 0,
+        ratingAvg: 0,
+        ratingCount: 0,
+        verified: false,
         createdAt: now,
       }
       state.products.push(product)
@@ -602,6 +678,95 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       persist()
     },
 
+    async listReviews(productId) {
+      await wait()
+      return state.reviews
+        .filter((review) => review.productId === productId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .flatMap((review) => {
+          const user = userById(review.authorId)
+          return user
+            ? [{ id: review.id, rating: review.rating, body: review.body, createdAt: review.createdAt, author: toSummary(user) }]
+            : []
+        })
+    },
+
+    async submitReview({ productId, rating, body }) {
+      await wait()
+      const user = requireUser()
+      const product = publishedProduct(productId)
+      const value = Math.min(5, Math.max(1, Math.round(rating)))
+      const text = body.trim() ? normalizeFa(body.trim()) : null
+      const existing = state.reviews.find((r) => r.productId === productId && r.authorId === user.id)
+      if (existing) {
+        existing.rating = value
+        existing.body = text
+        existing.createdAt = new Date().toISOString()
+      } else {
+        state.reviews.push({ id: newId('rv'), productId, authorId: user.id, rating: value, body: text, createdAt: new Date().toISOString() })
+      }
+      const rows = state.reviews.filter((r) => r.productId === productId)
+      product.ratingCount = rows.length
+      product.ratingAvg = rows.length ? Math.round((rows.reduce((sum, r) => sum + r.rating, 0) / rows.length) * 100) / 100 : 0
+      persist()
+    },
+
+    async deleteReview(productId) {
+      await wait()
+      const user = requireUser()
+      state.reviews = state.reviews.filter((r) => !(r.productId === productId && r.authorId === user.id))
+      const product = state.products.find((p) => p.id === productId)
+      if (product) {
+        const rows = state.reviews.filter((r) => r.productId === productId)
+        product.ratingCount = rows.length
+        product.ratingAvg = rows.length ? Math.round((rows.reduce((sum, r) => sum + r.rating, 0) / rows.length) * 100) / 100 : 0
+      }
+      persist()
+    },
+
+    async listSponsors() {
+      await wait()
+      return state.sponsors.filter((sponsor) => sponsor.isActive).map((sponsor) => ({ ...sponsor, logoUrl: sponsor.logoUrl }))
+    },
+
+    async listNotifications(page) {
+      await wait()
+      const user = current()
+      if (!user) return { items: [], total: 0, hasMore: false }
+      const mine = state.notifications.filter((n) => n.userId === user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = mine.slice(start, start + PAGE_SIZE).map((n) => {
+        const product = n.productId ? state.products.find((p) => p.id === n.productId) : undefined
+        const actor = n.actorId ? userById(n.actorId) : undefined
+        return {
+          id: n.id,
+          kind: n.kind,
+          productId: n.productId,
+          productSlug: product?.slug ?? null,
+          productName: product?.name ?? null,
+          body: n.body,
+          read: Boolean(n.readAt),
+          createdAt: n.createdAt,
+          actor: actor ? { username: actor.username, displayName: actor.displayName } : null,
+        }
+      })
+      return { items, total: mine.length, hasMore: start + PAGE_SIZE < mine.length }
+    },
+
+    async unreadNotificationCount() {
+      const user = current()
+      if (!user) return 0
+      return state.notifications.filter((n) => n.userId === user.id && !n.readAt).length
+    },
+
+    async markAllNotificationsRead() {
+      await wait()
+      const user = requireUser()
+      const now = new Date().toISOString()
+      for (const n of state.notifications) if (n.userId === user.id && !n.readAt) n.readAt = now
+      persist()
+    },
+
     async reportContent({ productId, commentId, reason, details }) {
       await wait()
       const user = requireUser()
@@ -729,6 +894,381 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
               : null,
           }
         })
+    },
+
+    async listCollections() {
+      await wait()
+      return state.collections.map((collection) => ({
+        slug: collection.slug,
+        name: collection.name,
+        description: collection.description,
+        productCount: state.products.filter(
+          (p) => collection.productIds.includes(p.id) && p.status === 'published',
+        ).length,
+      }))
+    },
+
+    async listCollectionProducts(slug, page) {
+      await wait()
+      const collection = state.collections.find((c) => c.slug === slug)
+      const matched = collection
+        ? state.products.filter((p) => collection.productIds.includes(p.id) && p.status === 'published')
+        : []
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = matched.slice(start, start + PAGE_SIZE).map(toProductSummary)
+      return { items, total: matched.length, hasMore: start + PAGE_SIZE < matched.length }
+    },
+
+    async listTopHunters(page) {
+      await wait()
+      const scored = state.users
+        .map((user) => {
+          const hunted = state.products.filter((p) => p.makerId === user.id && p.creditRole === 'hunter' && p.status === 'published')
+          return { user, huntCount: hunted.length, votesTotal: hunted.reduce((total, product) => total + product.votesCount, 0) }
+        })
+        .filter((row) => row.huntCount > 0)
+        .sort((a, b) => b.votesTotal - a.votesTotal || b.huntCount - a.huntCount || a.user.username.localeCompare(b.user.username))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = scored.slice(start, start + PAGE_SIZE).map((row, index) => ({
+        id: row.user.id,
+        username: row.user.username,
+        displayName: row.user.displayName,
+        avatarUrl: row.user.avatarUrl,
+        huntCount: row.huntCount,
+        votesTotal: row.votesTotal,
+        rank: start + index + 1,
+      }))
+      return { items, total: scored.length, hasMore: start + PAGE_SIZE < scored.length }
+    },
+
+    async setProductCredit(productId, input) {
+      await wait()
+      const user = requireUser()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      if (user.role !== 'admin' && product.makerId !== user.id) throw new ApiError('not_authorized')
+      if (input.role === 'hunter' && !input.makerName?.trim()) throw new ApiError('invalid_input')
+      product.creditRole = input.role
+      product.makerCreditName = input.role === 'hunter' ? input.makerName!.trim() : null
+      persist()
+    },
+
+    async listPersonalFeed(page) {
+      await wait()
+      const user = current()
+      const likedMakers = new Set(votedProducts(user?.id).map((p) => p.makerId))
+      const likedTopics = new Set(votedProducts(user?.id).map((p) => p.categoryId))
+      const matched = user
+        ? state.products
+            .filter((p) => p.status === 'published' && p.makerId !== user.id)
+            .filter((p) => likedMakers.has(p.makerId) || likedTopics.has(p.categoryId))
+            .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+        : []
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = matched.slice(start, start + PAGE_SIZE).map(toProductSummary)
+      return { items, total: matched.length, hasMore: start + PAGE_SIZE < matched.length }
+    },
+
+    async adminBroadcast(title, body) {
+      await wait()
+      requireAdmin()
+      const text = `${title.trim()}: ${body.trim()}`.slice(0, 300)
+      const now = new Date().toISOString()
+      for (const user of state.users) {
+        state.notifications.push({ id: newId('nt'), userId: user.id, kind: 'system', productId: null, actorId: null, body: text, readAt: null, createdAt: now })
+      }
+      persist()
+      return state.users.length
+    },
+
+    async listBannedWords() {
+      await wait()
+      return state.bannedWords.map((word, index) => ({ id: `bw-${index}`, word }))
+    },
+
+    async addBannedWord(word) {
+      await wait()
+      requireAdmin()
+      const value = word.trim()
+      if (!state.bannedWords.includes(value)) state.bannedWords.push(value)
+      persist()
+    },
+
+    async removeBannedWord(id) {
+      await wait()
+      requireAdmin()
+      const index = Number(id.replace('bw-', ''))
+      if (!Number.isNaN(index)) state.bannedWords.splice(index, 1)
+      persist()
+    },
+
+    async listCompanies(page) {
+      await wait()
+      const items = state.companies.map((company) => ({
+        id: company.id,
+        slug: company.slug,
+        name: company.name,
+        description: company.description,
+        logoUrl: null,
+        productCount: state.products.filter((p) => p.companyId === company.id && p.status === 'published').length,
+        memberCount: company.memberIds.length,
+      }))
+      const start = Math.max(0, page) * PAGE_SIZE
+      return { items: items.slice(start, start + PAGE_SIZE), total: items.length, hasMore: start + PAGE_SIZE < items.length }
+    },
+
+    async getCompany(slug) {
+      await wait()
+      const company = state.companies.find((c) => c.slug === slug)
+      return company
+        ? {
+            id: company.id,
+            slug: company.slug,
+            name: company.name,
+            description: company.description,
+            websiteUrl: company.websiteUrl,
+            logoUrl: null,
+            isActive: true,
+          }
+        : null
+    },
+
+    async listCompanyProducts(slug, page) {
+      await wait()
+      const company = state.companies.find((c) => c.slug === slug)
+      const matched = company
+        ? state.products.filter((p) => p.companyId === company.id && p.status === 'published')
+        : []
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = matched.slice(start, start + PAGE_SIZE).map(toProductSummary)
+      return { items, total: matched.length, hasMore: start + PAGE_SIZE < matched.length }
+    },
+
+    async adminSaveCompany(input) {
+      await wait()
+      requireAdmin()
+      const existing = input.id ? state.companies.find((c) => c.id === input.id) : undefined
+      const members = input.members
+        .map((username) => state.users.find((user) => user.username === username.trim().toLowerCase()))
+        .flatMap((user) => (user ? [user.id] : []))
+      if (existing) {
+        existing.slug = input.slug
+        existing.name = input.name
+        existing.description = input.description || null
+        existing.websiteUrl = input.websiteUrl || null
+        existing.memberIds = members
+        persist()
+        return existing.id
+      }
+      const company = {
+        id: newId('co'),
+        slug: input.slug,
+        name: input.name,
+        description: input.description || null,
+        websiteUrl: input.websiteUrl || null,
+        memberIds: members,
+      }
+      state.companies.push(company)
+      persist()
+      return company.id
+    },
+
+    async setProductCompany(productId, companyId) {
+      await wait()
+      requireAdmin()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      product.companyId = companyId
+      persist()
+    },
+
+    async listNewsletterSubscribers(page) {
+      await wait()
+      requireAdmin()
+      const items = state.newsletter.map((email) => ({
+        email,
+        source: 'footer',
+        createdAt: new Date().toISOString(),
+      }))
+      const start = Math.max(0, page) * PAGE_SIZE
+      return { items: items.slice(start, start + PAGE_SIZE), total: items.length, hasMore: start + PAGE_SIZE < items.length }
+    },
+
+    async listPosts(page) {
+      await wait()
+      const sorted = [...state.posts].filter((post) => post.status === 'published').sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+      const start = Math.max(0, page) * PAGE_SIZE
+      const items = sorted.slice(start, start + PAGE_SIZE).map((post) => {
+        const author = post.authorId ? userById(post.authorId) : undefined
+        return {
+          id: post.id,
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          coverUrl: null,
+          tags: post.tags,
+          publishedAt: post.publishedAt,
+          author: author ? toSummary(author) : null,
+        }
+      })
+      return { items, total: sorted.length, hasMore: start + PAGE_SIZE < sorted.length }
+    },
+
+    async getPost(slug) {
+      await wait()
+      const post = state.posts.find((p) => p.slug === slug && p.status === 'published')
+      if (!post) return null
+      const author = post.authorId ? userById(post.authorId) : undefined
+      return {
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        coverUrl: null,
+        tags: post.tags,
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+        seoTitle: post.seoTitle,
+        seoDescription: post.seoDescription,
+        author: author ? toSummary(author) : null,
+      }
+    },
+
+    async siteStats() {
+      await wait()
+      const published = state.products.filter((product) => product.status === 'published')
+      return {
+        products: published.length,
+        makers: new Set(published.map((product) => product.makerId)).size,
+        votes: published.reduce((total, product) => total + product.votesCount, 0),
+      }
+    },
+
+    async adminListPosts(page) {
+      await wait()
+      requireAdmin()
+      const sorted = [...state.posts].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      const start = Math.max(0, page) * 30
+      const items = sorted.slice(start, start + 30).map((post) => ({
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        status: post.status,
+        tags: post.tags,
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+      }))
+      return { items, total: sorted.length, hasMore: start + 30 < sorted.length }
+    },
+
+    async adminGetPost(id) {
+      await wait()
+      requireAdmin()
+      const post = state.posts.find((p) => p.id === id)
+      if (!post) return null
+      return {
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        coverUrl: null,
+        tags: post.tags,
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+        seoTitle: post.seoTitle,
+        seoDescription: post.seoDescription,
+        author: null,
+      }
+    },
+
+    async adminSavePost(input) {
+      await wait()
+      const admin = requireAdmin()
+      const now = new Date().toISOString()
+      const existing = input.id ? state.posts.find((p) => p.id === input.id) : undefined
+      if (existing) {
+        existing.slug = input.slug
+        existing.title = input.title
+        existing.excerpt = input.excerpt || null
+        existing.content = input.content
+        existing.seoTitle = input.seoTitle || null
+        existing.seoDescription = input.seoDescription || null
+        existing.tags = input.tags
+        existing.status = input.status
+        existing.updatedAt = now
+        if (input.status === 'published' && !existing.publishedAt) existing.publishedAt = now
+        persist()
+        return existing.slug
+      }
+      const post = {
+        id: newId('po'),
+        slug: input.slug,
+        title: input.title,
+        excerpt: input.excerpt || null,
+        content: input.content,
+        seoTitle: input.seoTitle || null,
+        seoDescription: input.seoDescription || null,
+        tags: input.tags,
+        status: input.status,
+        authorId: admin.id,
+        publishedAt: input.status === 'published' ? now : null,
+        createdAt: now,
+        updatedAt: now,
+      }
+      state.posts.push(post)
+      persist()
+      return post.slug
+    },
+
+    async adminDeletePost(id) {
+      await wait()
+      requireAdmin()
+      state.posts = state.posts.filter((post) => post.id !== id)
+      persist()
+    },
+
+    async setProductVerified(productId, verified) {
+      await wait()
+      requireAdmin()
+      const product = state.products.find((p) => p.id === productId)
+      if (!product) throw new ApiError('not_found')
+      product.verified = verified
+      persist()
+    },
+
+    async adminSetRole(profileId, role) {
+      await wait()
+      const admin = requireAdmin()
+      if (role === 'user' && profileId === admin.id) throw new ApiError('not_authorized')
+      const user = state.users.find((u) => u.id === profileId)
+      if (!user) throw new ApiError('not_found')
+      user.role = role
+      persist()
+    },
+
+    async listUsersOverview(query, page) {
+      await wait()
+      requireAdmin()
+      const term = query.trim().toLowerCase()
+      const matched = state.users
+        .filter((user) => !term || user.username.includes(term) || user.displayName.toLowerCase().includes(term))
+        .map((user) => {
+          const products = state.products.filter((p) => p.makerId === user.id && p.status === 'published')
+          return {
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            role: user.role,
+            createdAt: user.createdAt,
+            productCount: products.length,
+            votesReceived: products.reduce((total, product) => total + product.votesCount, 0),
+          }
+        })
+      const start = Math.max(0, page) * PAGE_SIZE
+      return { items: matched.slice(start, start + PAGE_SIZE), total: matched.length, hasMore: start + PAGE_SIZE < matched.length }
     },
 
     async resolveReport(reportId, status) {

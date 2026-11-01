@@ -2,3 +2,13 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /settings
+Disallow: /dashboard
+Disallow: /notifications
+Disallow: /saved
+Disallow: /feed
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://shekargah.mmehdi.ir/sitemap.xml

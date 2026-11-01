@@ -32,6 +32,27 @@ export function formatRelative(iso: string, now: Date = new Date()): string {
   return 'همین حالا'
 }
 
+const dayFormat = new Intl.DateTimeFormat('fa-IR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+const shortDayFormat = new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
+
+/** Calendar-day label in the Persian (Jalali) calendar, e.g. «جمعه ۸ آبان ۱۴۰۵». */
+export function formatDay(iso: string): string {
+  return dayFormat.format(new Date(iso))
+}
+
+/** Same as formatDay but without the weekday. */
+export function formatShortDay(iso: string): string {
+  return shortDayFormat.format(new Date(iso))
+}
+
+/**
+ * Formats a plain `yyyy-mm-dd` string (as used by query params and the RPC
+ * dates) into a Jalali label. Never shows a Gregorian date to the user.
+ */
+export function formatIsoDay(isoDate: string): string {
+  return dayFormat.format(new Date(`${isoDate}T12:00:00+03:30`))
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${formatNumber(Math.round((bytes / 1024 / 1024) * 10) / 10)} مگابایت`
   return `${formatNumber(Math.round(bytes / 1024))} کیلوبایت`

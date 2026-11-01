@@ -39,6 +39,26 @@ export interface TagRef {
   name: string
 }
 
+/** A category/topic with discovery metadata. */
+export interface Topic {
+  slug: string
+  name: string
+  description: string | null
+  productCount: number
+  recentVotes: number
+}
+
+/** A maker ranked by the votes their published products received. */
+export interface TopMaker {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  productCount: number
+  votesTotal: number
+  rank: number
+}
+
 export interface ProfileSummary {
   id: string
   username: string
@@ -61,9 +81,155 @@ export interface ProductSummary {
   votesCount: number
   commentsCount: number
   viewsCount: number
+  ratingAvg: number
+  ratingCount: number
+  verified: boolean
   publishedAt: string | null
   category: CategoryRef | null
   tags: TagRef[]
+}
+
+export type CreditRole = 'maker' | 'hunter'
+
+/** A hunter who discovered products, ranked by the votes those products got. */
+export interface TopHunter {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  huntCount: number
+  votesTotal: number
+  rank: number
+}
+
+export type NotificationKind = 'vote' | 'comment' | 'review' | 'approved' | 'rejected' | 'system'
+
+export interface Notification {
+  id: string
+  kind: NotificationKind
+  productId: string | null
+  productSlug: string | null
+  productName: string | null
+  body: string | null
+  read: boolean
+  createdAt: string
+  actor: { username: string; displayName: string } | null
+}
+
+export interface Review {
+  id: string
+  rating: number
+  body: string | null
+  createdAt: string
+  author: ProfileSummary
+}
+
+export interface Sponsor {
+  id: string
+  name: string
+  tagline: string | null
+  url: string
+  logoUrl: string | null
+}
+
+export interface Collection {
+  slug: string
+  name: string
+  description: string | null
+  productCount: number
+}
+
+export interface Company {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  logoUrl: string | null
+  productCount: number
+  memberCount: number
+}
+
+export interface CompanyDetail {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  websiteUrl: string | null
+  logoUrl: string | null
+  isActive: boolean
+}
+
+export interface NewsletterSubscriber {
+  email: string
+  source: string | null
+  createdAt: string
+}
+
+export interface AdminCompanyInput {
+  id?: string | null
+  slug: string
+  name: string
+  description: string
+  websiteUrl: string
+  isActive: boolean
+  members: string[]
+}
+
+export interface PostSummary {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  coverUrl: string | null
+  tags: string[]
+  publishedAt: string | null
+  author: ProfileSummary | null
+}
+
+export interface Post extends PostSummary {
+  content: string
+  seoTitle: string | null
+  seoDescription: string | null
+  updatedAt: string
+}
+
+export interface AdminPostRow {
+  id: string
+  slug: string
+  title: string
+  status: 'draft' | 'published'
+  tags: string[]
+  publishedAt: string | null
+  updatedAt: string
+}
+
+export interface AdminPostInput {
+  id?: string | null
+  slug: string
+  title: string
+  excerpt: string
+  content: string
+  seoTitle: string
+  seoDescription: string
+  tags: string[]
+  status: 'draft' | 'published'
+}
+
+export interface SiteStats {
+  products: number
+  makers: number
+  votes: number
+}
+
+export interface AdminUser {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string | null
+  role: Role
+  createdAt: string
+  productCount: number
+  votesReceived: number
 }
 
 /** A product with its position in a ranked list (daily, leaderboard, trending). */
@@ -83,6 +249,12 @@ export interface Product extends ProductSummary {
   websiteUrl: string
   status: ProductStatus
   maker: ProfileSummary
+  creditRole: CreditRole
+  /** The credited maker when a hunter submitted the product. */
+  makerCredit: ProfileSummary | null
+  makerCreditName: string | null
+  hunter: ProfileSummary | null
+  company: { id: string; slug: string; name: string } | null
   screenshots: ProductScreenshot[]
   moderationNote: string | null
   moderatedAt: string | null
@@ -125,6 +297,14 @@ export interface Page<T> {
   hasMore: boolean
 }
 
+export interface ProductCreditInput {
+  role: CreditRole
+  /** Username of the credited maker when they have a Shekargah account. */
+  makerUsername?: string
+  /** Free-text name of the credited maker when they have no account. */
+  makerName?: string
+}
+
 export interface SubmitProductInput {
   name: string
   tagline: string
@@ -134,6 +314,7 @@ export interface SubmitProductInput {
   tags: string[]
   logo: File | null
   screenshots: File[]
+  credit: ProductCreditInput
 }
 
 export interface ProfileUpdate {
@@ -194,6 +375,12 @@ export interface ShekargahApi {
   updateProfile(userId: string, input: ProfileUpdate): Promise<Profile>
 
   listCategories(options?: { includeInactive?: boolean }): Promise<Category[]>
+  /** Categories with product counts and 7-day vote activity. */
+  listTopics(): Promise<Topic[]>
+  /** Makers ranked by votes received on their published products. */
+  listTopMakers(page: number): Promise<Page<TopMaker>>
+  /** Adds an address to the newsletter list; idempotent. */
+  subscribeNewsletter(input: { email: string; source?: string }): Promise<void>
   listTags(): Promise<Tag[]>
   listProducts(query: ProductQuery): Promise<Page<ProductSummary>>
   getProduct(slug: string): Promise<Product | null>
@@ -229,6 +416,34 @@ export interface ShekargahApi {
   addComment(productId: string, body: string): Promise<Comment>
   deleteComment(commentId: string): Promise<void>
 
+  listReviews(productId: string): Promise<Review[]>
+  submitReview(input: { productId: string; rating: number; body: string }): Promise<void>
+  deleteReview(productId: string): Promise<void>
+
+  listSponsors(): Promise<Sponsor[]>
+
+  listCollections(): Promise<Collection[]>
+  listCollectionProducts(slug: string, page: number): Promise<Page<ProductSummary>>
+
+  /** Hunters ranked by votes their discovered products received. */
+  listTopHunters(page: number): Promise<Page<TopHunter>>
+  /** Set who gets credit for a product (submitter on their drafts, admin anywhere). */
+  setProductCredit(productId: string, input: ProductCreditInput): Promise<void>
+
+  /** Recommended products for the signed-in visitor. */
+  listPersonalFeed(page: number): Promise<Page<ProductSummary>>
+
+  listCompanies(page: number): Promise<Page<Company>>
+  getCompany(slug: string): Promise<CompanyDetail | null>
+  listCompanyProducts(slug: string, page: number): Promise<Page<ProductSummary>>
+  adminSaveCompany(input: AdminCompanyInput): Promise<string>
+  setProductCompany(productId: string, companyId: string | null): Promise<void>
+  listNewsletterSubscribers(page: number): Promise<Page<NewsletterSubscriber>>
+
+  listNotifications(page: number): Promise<Page<Notification>>
+  unreadNotificationCount(): Promise<number>
+  markAllNotificationsRead(): Promise<void>
+
   reportContent(input: ReportInput): Promise<void>
 
   listProductsByStatus(status: ProductStatus, page: number): Promise<Page<Product>>
@@ -237,4 +452,22 @@ export interface ShekargahApi {
   deleteCategory(categoryId: string): Promise<void>
   listReports(filter: 'open' | 'all'): Promise<Report[]>
   resolveReport(reportId: string, status: 'resolved' | 'dismissed'): Promise<void>
+
+  listPosts(page: number): Promise<Page<PostSummary>>
+  getPost(slug: string): Promise<Post | null>
+  siteStats(): Promise<SiteStats>
+
+  /** Admin-only moderation helpers. */
+  adminListPosts(page: number): Promise<Page<AdminPostRow>>
+  adminGetPost(id: string): Promise<Post | null>
+  adminSavePost(input: AdminPostInput): Promise<string>
+  adminDeletePost(id: string): Promise<void>
+  adminBroadcast(title: string, body: string): Promise<number>
+  listBannedWords(): Promise<{ id: string; word: string }[]>
+  addBannedWord(word: string): Promise<void>
+  removeBannedWord(id: string): Promise<void>
+  listUsersOverview(query: string, page: number): Promise<Page<AdminUser>>
+  adminSetRole(profileId: string, role: Role): Promise<void>
+  /** Grant or remove the "بررسی‌شده توسط انسان" mark. Admin only. */
+  setProductVerified(productId: string, verified: boolean): Promise<void>
 }

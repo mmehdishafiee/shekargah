@@ -4,8 +4,10 @@ import type { ProductSummary } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
 import { ProductLogo } from './ProductLogo'
+import { RatingStars } from './RatingStars'
 import { SaveButton } from './SaveButton'
 import { TagChips } from './TagChips'
+import { VerifiedBadge } from './VerifiedBadge'
 import { ViewCount } from './ViewCount'
 import { VoteButton } from './VoteButton'
 
@@ -32,9 +34,17 @@ export function ProductRow({ product, voted, saved = false, rank }: ProductRowPr
             className="truncate after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none group-has-[a:focus-visible]:ring-2"
           >
             {product.name}
+            {product.verified && <VerifiedBadge size={13} />}
           </Link>
         </h3>
-        <p className="mt-0.5 line-clamp-2 text-sm text-ink-muted">{product.tagline}</p>
+        <p className="bidi mt-0.5 line-clamp-2 text-sm text-ink-muted">{product.tagline}</p>
+        {product.ratingCount > 0 && (
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-muted">
+            <RatingStars value={product.ratingAvg} size={13} />
+            <span className="tabular-nums">{formatNumber(product.ratingAvg)}</span>
+            <span className="tabular-nums">({formatNumber(product.ratingCount)})</span>
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-muted">
           {product.category && (
             <Link

@@ -5,10 +5,12 @@ interface MenuProps {
   trigger: ReactNode
   children: (close: () => void) => ReactNode
   triggerClassName?: string
+  /** Which edge the panel is anchored to. */
+  align?: 'start' | 'end'
 }
 
 /** Small disclosure menu: closes on outside click, Escape and item selection. */
-export function Menu({ label, trigger, children, triggerClassName = '' }: MenuProps) {
+export function Menu({ label, trigger, children, triggerClassName = '', align = 'end' }: MenuProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -44,7 +46,9 @@ export function Menu({ label, trigger, children, triggerClassName = '' }: MenuPr
       {open && (
         <div
           id={menuId}
-          className="absolute end-0 top-full z-40 mt-2 min-w-52 rounded-control border border-line bg-surface/95 p-1.5 shadow-pop backdrop-blur-md"
+          className={`absolute top-full z-40 mt-2 min-w-52 rounded-control border border-line bg-surface/95 p-1.5 shadow-pop backdrop-blur-md ${
+            align === 'start' ? 'start-0' : 'end-0'
+          }`}
         >
           {children(() => setOpen(false))}
         </div>

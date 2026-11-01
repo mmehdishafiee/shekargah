@@ -53,7 +53,7 @@ export function ProfilePage() {
           <h1 className="text-2xl font-extrabold">{user.displayName}</h1>
           <p className="ltr mt-0.5 text-start text-sm text-ink-muted">@{user.username}</p>
           {user.bio && (
-            <p dir="auto" className="mt-3 max-w-prose whitespace-pre-line text-[15px]">
+            <p className="bidi mt-3 max-w-prose whitespace-pre-line text-[15px]">
               {user.bio}
             </p>
           )}
@@ -138,7 +138,7 @@ function PrivateSubmission({ product }: { product: Product }) {
           </Link>
           <StatusBadge status={product.status} />
         </div>
-        <p className="mt-0.5 truncate text-sm text-ink-muted">{product.tagline}</p>
+        <p className="bidi mt-0.5 truncate text-sm text-ink-muted">{product.tagline}</p>
         <p className="mt-1 text-xs text-ink-muted">ثبت‌شده در {formatDate(product.createdAt)}</p>
         {product.status === 'rejected' && product.moderationNote && (
           <p className="mt-2 rounded-lg bg-danger-50 px-3 py-2 text-[13px] text-danger-700">

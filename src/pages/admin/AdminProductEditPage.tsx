@@ -42,6 +42,11 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
   const [logo, setLogo] = useState<File | null>(null)
   const [screenshots, setScreenshots] = useState(product.screenshots)
   const [newScreenshots, setNewScreenshots] = useState<File[]>([])
+  const [credit, setCredit] = useState({
+    role: product.creditRole,
+    makerUsername: product.makerCredit?.username ?? '',
+    makerName: product.makerCreditName ?? '',
+  })
   const [errors, setErrors] = useState<FieldErrors<'name' | 'tagline' | 'description' | 'websiteUrl' | 'categoryId' | 'tags' | 'logo' | 'screenshots'>>({})
 
   const previewLogo = logo ? URL.createObjectURL(logo) : product.logoUrl
@@ -61,6 +66,9 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
         tags: values.selectedTags,
         logo,
         screenshots: [...newScreenshots],
+        creditRole: product.creditRole,
+        makerCreditUsername: '',
+        makerCreditName: product.makerCreditName ?? '',
       })
       if (Object.keys(found).length > 0) {
         setErrors(found)
@@ -68,6 +76,11 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
       }
       await api.adminUpdateProduct({ id: product.id, ...values, categoryId: values.categoryId })
       if (logo) await api.setProductLogo(product.id, logo)
+      await api.setProductCredit(product.id, {
+        role: credit.role,
+        makerUsername: credit.makerUsername || undefined,
+        makerName: credit.makerName || undefined,
+      })
       await api.setProductTags(product.id, values.selectedTags)
       await api.setProductScreenshots(product.id, {
         keep: screenshots.map((shot) => ({ key: shot.key, alt: shot.alt })),
@@ -134,6 +147,54 @@ function EditForm({ product }: { product: NonNullable<ReturnType<typeof useProdu
               return <button key={tag.id} type="button" aria-pressed={selected} onClick={() => setValues((v) => ({ ...v, selectedTags: selected ? v.selectedTags.filter((s) => s !== tag.slug) : [...v.selectedTags, tag.slug] }))} className={`rounded-full border px-3 py-1.5 text-sm ${selected ? 'border-ink bg-ink text-white' : 'border-line text-ink-muted'}`}>#{tag.name}</button>
             })}
           </div>}
+        </Field>
+
+        <Field label="نسبت محصول" hint="سازنده یعنی خودش ساخته؛ شکارچی یعنی فقط کشف و ثبت کرده.">
+          {() => (
+            <div className="space-y-3">
+              <div role="radiogroup" aria-label="نسبت محصول" className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ['maker', 'سازنده'],
+                    ['hunter', 'شکارچی'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={credit.role === value}
+                    onClick={() => setCredit((current) => ({ ...current, role: value }))}
+                    className={`rounded-control border px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+                      credit.role === value ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-line bg-surface hover:border-line-strong'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {credit.role === 'hunter' && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="نام سازنده‌ی واقعی" optional>
+                    {(props) => (
+                      <TextInput {...props} dir="auto" value={credit.makerName} onChange={(event) => setCredit((current) => ({ ...current, makerName: event.target.value }))} />
+                    )}
+                  </Field>
+                  <Field label="نام کاربری سازنده" optional>
+                    {(props) => (
+                      <TextInput
+                        {...props}
+                        dir="ltr"
+                        className="text-start"
+                        value={credit.makerUsername}
+                        onChange={(event) => setCredit((current) => ({ ...current, makerUsername: event.target.value.toLowerCase() }))}
+                      />
+                    )}
+                  </Field>
+                </div>
+              )}
+            </div>
+          )}
         </Field>
 
         <Field label="لوگو" optional hint={`PNG، JPG یا WebP تا ${formatBytes(LIMITS.logoBytes)}.`} error={errors.logo}>

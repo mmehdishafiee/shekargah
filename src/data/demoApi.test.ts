@@ -15,6 +15,7 @@ const input = {
   tags: [] as string[],
   logo: null,
   screenshots: [] as File[],
+  credit: { role: 'maker' as const },
 }
 
 beforeEach(() => {

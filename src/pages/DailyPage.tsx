@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router'
 import { PackageSearch } from 'lucide-react'
 import { useDailyProducts, useMySavedIds, useMyVotes } from '@/data/queries'
 import { tehranDateLabel } from '@/lib/engagement'
+import { formatIsoDay } from '@/lib/format'
 import { formatNumber } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductRow } from '@/components/product/ProductRow'
@@ -21,7 +22,8 @@ export function DailyPage() {
   const votes = useMyVotes(products.map((p) => p.id))
   const saved = useMySavedIds(products.map((p) => p.id))
 
-  useDocumentMeta(isToday ? 'محصولات امروز' : `محصولات ${date}`)
+  const dayLabel = formatIsoDay(date)
+  useDocumentMeta(isToday ? 'محصولات امروز' : `محصولات ${dayLabel}`)
 
   const setDate = (value: string | null) => {
     const next = new URLSearchParams(params)
@@ -42,7 +44,7 @@ export function DailyPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 id="daily-heading" className="text-2xl font-extrabold">
-            {isToday ? 'محصولات امروز' : `محصولات ${date}`}
+            {isToday ? 'محصولات امروز' : `محصولات ${dayLabel}`}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
             {isToday ? 'تازه‌ترین محصولاتی که امروز در شکارگاه منتشر شدند.' : 'محصولاتی که در این روز منتشر شدند.'}

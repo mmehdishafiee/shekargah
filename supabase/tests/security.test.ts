@@ -578,3 +578,351 @@ describe('product logos', () => {
     expect(await errorOf(as(db, owner, (tx) => tx.query(`select public.set_product_logo($1, $2)`, [otherProduct.id, logo])))).toMatch(/not_authorized/)
   })
 })
+
+describe('topics, top makers and newsletter', () => {
+  it('lists topics with product counts for anonymous visitors', async () => {
+    const rows = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select slug, product_count, recent_votes from public.list_topics()`)).rows,
+    )
+    expect(rows.length).toBeGreaterThan(0)
+    const webApps = rows.find((row) => row.slug === 'web-apps')
+    expect(webApps).toBeTruthy()
+    expect(Number(webApps!.product_count)).toBeGreaterThan(0)
+  })
+
+  it('ranks makers by votes received and hides makers without products', async () => {
+    const maker = await createUser(db, 'maker-rank@shekargah.test', 'سازنده رتبه')
+    const first = await publish('پررأی', maker)
+    await publish('کم‌رأی', maker)
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [first.id]))
+    await as(db, bob, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [first.id]))
+
+    const rows = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select username, product_count, votes_total, rank from public.list_top_makers(50, 0)`)).rows,
+    )
+    const own = rows.find((row) => String(row.username).startsWith('makerrank'))
+    expect(own).toBeTruthy()
+    expect(Number(own!.votes_total)).toBeGreaterThanOrEqual(2)
+    expect(Number(own!.product_count)).toBe(2)
+    expect(rows.every((row) => Number(row.product_count) > 0)).toBe(true)
+  })
+
+  it('accepts newsletter signups from anon, keeps them private and dedupes', async () => {
+    await as(db, ANON, (tx) => tx.query(`select public.subscribe_newsletter($1, $2)`, ['News@Example.com', 'footer']))
+    await as(db, ANON, (tx) => tx.query(`select public.subscribe_newsletter($1, $2)`, ['news@example.com', 'footer']))
+    const { rows } = await db.query<Row>(`select email from public.newsletter_subscribers`)
+    expect(rows).toEqual([{ email: 'news@example.com' }])
+
+    // Anonymous visitors have no read access at all.
+    expect(await errorOf(as(db, ANON, (tx) => tx.query(`select 1 from public.newsletter_subscribers`)))).toMatch(
+      /permission denied/,
+    )
+    // Regular signed-in users see nothing because RLS filters every row.
+    const visible = await as(db, alice, async (tx) =>
+      (await tx.query(`select 1 from public.newsletter_subscribers`)).rows.length,
+    )
+    expect(visible).toBe(0)
+
+    expect(await errorOf(as(db, ANON, (tx) => tx.query(`select public.subscribe_newsletter($1, null)`, ['not-an-email'])))).toMatch(
+      /invalid_email/,
+    )
+  })
+})
+
+describe('reviews, notifications, verified and sponsors', () => {
+  it('accepts one review per user, keeps the average in sync and is public', async () => {
+    const maker = await createUser(db, 'review-maker@shekargah.test')
+    const product = await publish('نقدپذیر', maker)
+    const a = await createUser(db, 'reviewer-a@shekargah.test')
+    const b = await createUser(db, 'reviewer-b@shekargah.test')
+
+    await as(db, a, (tx) => tx.query(`insert into public.reviews (product_id, rating, body) values ($1, 5, 'عالی بود')`, [product.id]))
+    await as(db, b, (tx) => tx.query(`insert into public.reviews (product_id, rating, body) values ($1, 3, 'معمولی')`, [product.id]))
+
+    const { rows } = await db.query<Row>(`select rating_avg, rating_count from public.products where id = $1`, [product.id])
+    expect(Number(rows[0]!.rating_count)).toBe(2)
+    expect(Number(rows[0]!.rating_avg)).toBe(4)
+
+    // Same user cannot review twice.
+    expect(await errorOf(as(db, a, (tx) =>
+      tx.query(`insert into public.reviews (product_id, rating) values ($1, 1)`, [product.id]),
+    ))).toMatch(/duplicate key|unique/)
+
+    // Reviews are readable by anonymous visitors.
+    const visible = await as(db, ANON, async (tx) =>
+      (await tx.query(`select rating from public.reviews where product_id = $1`, [product.id])).rows.length,
+    )
+    expect(visible).toBe(2)
+  })
+
+  it('does not let users review unpublished products or forge the author', async () => {
+    const owner = await createUser(db, 'review-owner@shekargah.test')
+    const pending = await submit(owner, 'در انتظار نقد')
+    expect(await errorOf(as(db, owner, (tx) =>
+      tx.query(`insert into public.reviews (product_id, rating) values ($1, 4)`, [pending.id]),
+    ))).toMatch(/row-level security|violates/)
+  })
+
+  it('notifies the maker about votes and comments but never about their own actions', async () => {
+    const maker = await createUser(db, 'notify-maker@shekargah.test')
+    const product = await publish('اعلان‌دار', maker)
+    const fan = await createUser(db, 'notify-fan@shekargah.test')
+
+    await as(db, fan, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [product.id]))
+    await as(db, fan, (tx) => tx.query(`insert into public.comments (product_id, body) values ($1, 'خیلی خوب')`, [product.id]))
+
+    const rows = await as(db, maker, async (tx) =>
+      (await tx.query<Row>(`select kind from public.notifications where user_id = $1 order by id`, [maker.id])).rows,
+    )
+    expect(rows.map((row) => row.kind)).toEqual(['vote', 'comment'])
+
+    // The voter sees nothing of the maker's inbox.
+    const own = await as(db, fan, async (tx) =>
+      (await tx.query(`select 1 from public.notifications`)).rows.length,
+    )
+    expect(own).toBe(0)
+
+    // Marking read only affects the caller's rows.
+    await as(db, maker, (tx) => tx.query(`select public.mark_all_notifications_read()`))
+    const unread = await as(db, maker, async (tx) =>
+      (await tx.query(`select 1 from public.notifications where read_at is null`)).rows.length,
+    )
+    expect(unread).toBe(0)
+  })
+
+  it('only admins can grant the verified mark', async () => {
+    const product = await publish('محصول تأییدشده', alice)
+    expect(await errorOf(as(db, alice, (tx) => tx.query(`select public.set_product_verified($1, true)`, [product.id])))).toMatch(
+      /not_authorized/,
+    )
+    await as(db, admin, (tx) => tx.query(`select public.set_product_verified($1, true)`, [product.id]))
+    const { rows } = await db.query<Row>(`select verified from public.products where id = $1`, [product.id])
+    expect(rows[0]!.verified).toBe(true)
+  })
+
+  it('lets everyone read active sponsors but only admins manage them', async () => {
+    await db.query(`insert into public.sponsors (name, tagline, url, is_active) values ('حامی یک', 'تست', 'https://example.com', true)`)
+    const rows = await as(db, ANON, async (tx) => (await tx.query(`select name from public.sponsors`)).rows)
+    expect(rows.length).toBeGreaterThan(0)
+    expect(await errorOf(as(db, alice, (tx) => tx.query(`insert into public.sponsors (name, url) values ('x', 'https://x.ir')`)))).toMatch(
+      /row-level security|permission denied/,
+    )
+  })
+})
+
+describe('collections and admin tools', () => {
+  it('serves active collections publicly and blocks non-admin writes', async () => {
+    const product = await publish('در مجموعه', alice)
+    const { rows: created } = await db.query<Row>(
+      `insert into public.collections (slug, name, description) values ('editors-pick-test', 'منتخب', 'تست') returning id`,
+    )
+    const collectionId = created[0]!.id as string
+    await db.query(`insert into public.collection_products (collection_id, product_id) values ($1, $2)`, [collectionId, product.id])
+
+    const listed = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select slug, product_count from public.list_collections()`)).rows,
+    )
+    const row = listed.find((item) => item.slug === 'editors-pick-test')
+    expect(Number(row!.product_count)).toBe(1)
+
+    const products = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select name from public.list_collection_products('editors-pick-test', 10, 0)`)).rows,
+    )
+    expect(products.map((item) => item.name)).toContain('در مجموعه')
+
+    expect(await errorOf(as(db, alice, (tx) =>
+      tx.query(`insert into public.collections (slug, name) values ('nope', 'نه')`),
+    ))).toMatch(/row-level security|permission denied/)
+  })
+
+  it('builds a personal feed from earlier votes and never includes own products', async () => {
+    const maker = await createUser(db, 'feed-maker@shekargah.test')
+    const liked = await publish('محبوب کاربر', maker)
+    await publish('محصول دیگر سازنده', maker)
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [liked.id]))
+
+    const rows = await as(db, alice, async (tx) =>
+      (await tx.query<Row>(`select name from public.list_personal_feed(50, 0)`)).rows,
+    )
+    const names = rows.map((row) => row.name)
+    expect(names).toContain('محصول دیگر سازنده')
+
+    const ownForMaker = await as(db, maker, async (tx) =>
+      (await tx.query<Row>(`select name from public.list_personal_feed(50, 0)`)).rows,
+    )
+    expect(ownForMaker.map((row) => row.name)).not.toContain('محصول دیگر سازنده')
+
+    expect(await errorOf(as(db, ANON, (tx) => tx.query(`select * from public.list_personal_feed(10, 0)`)))).toMatch(
+      /permission denied|not_authorized/,
+    )
+  })
+
+  it('blocks banned words in products and comments', async () => {
+    await db.query(`insert into public.banned_words (word) values ('کلمه‌ممنوع')`)
+    const author = await createUser(db, 'banned-author@shekargah.test')
+    expect(await errorOf(
+      as(db, author, (tx) =>
+        tx.query(
+          `insert into public.products (name, tagline, description, website_url, category_id)
+           values ('کلمه‌ممنوع', 'یک توضیح کوتاه برای آزمایش', 'این یک توضیح کامل‌تر برای محصول آزمایشی است.', 'https://x.ir', $1)`,
+          [categoryId],
+        ),
+    ))).toMatch(/banned_word/)
+  })
+
+  it('only admins can broadcast, and every member receives one notification', async () => {
+    expect(await errorOf(as(db, alice, (tx) => tx.query(`select public.admin_broadcast('خبر', 'متن خبر')`)))).toMatch(
+      /not_authorized/,
+    )
+    const sent = await as(db, admin, async (tx) =>
+      (await tx.query<Row>(`select public.admin_broadcast('خبر تازه', 'متن خبر') as sent`)).rows[0]!.sent,
+    )
+    expect(Number(sent)).toBeGreaterThan(0)
+
+    const mine = await as(db, bob, async (tx) =>
+      (await tx.query(`select 1 from public.notifications where kind = 'system'`)).rows.length,
+    )
+    expect(mine).toBeGreaterThan(0)
+  })
+})
+
+describe('companies and newsletter export', () => {
+  it('lets admins create a company, link products and read it publicly', async () => {
+    const owner = await createUser(db, 'company-owner@shekargah.test')
+    const product = await publish('محصول شرکتی', owner)
+
+    expect(await errorOf(as(db, alice, (tx) =>
+      tx.query(`select public.admin_save_company(null, 'acme', 'شرکت آزمون', null, null, null, true, null)`),
+    ))).toMatch(/not_authorized/)
+
+    const id = await as(db, admin, async (tx) =>
+      (await tx.query<Row>(
+        `select public.admin_save_company(null, 'acme', 'شرکت آزمون', 'توضیح', null, null, true, $1) as id`,
+        [['companyowner']],
+      )).rows[0]!.id as string,
+    )
+    expect(id).toBeTruthy()
+
+    await as(db, admin, (tx) => tx.query(`select public.set_product_company($1, $2)`, [product.id, id]))
+
+    const rows = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select name, product_count, member_count from public.list_companies(10, 0)`)).rows,
+    )
+    const acme = rows.find((row) => row.name === 'شرکت آزمون')
+    expect(Number(acme!.product_count)).toBe(1)
+    expect(Number(acme!.member_count)).toBe(1)
+
+    const detail = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select name from public.get_company('acme')`)).rows,
+    )
+    expect(detail[0]!.name).toBe('شرکت آزمون')
+
+    const products = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select name from public.list_company_products('acme', 10, 0)`)).rows,
+    )
+    expect(products.map((row) => row.name)).toContain('محصول شرکتی')
+  })
+
+  it('exposes the newsletter list to admins only', async () => {
+    await as(db, ANON, (tx) => tx.query(`select public.subscribe_newsletter($1, null)`, ['export@example.com']))
+    expect(await errorOf(as(db, alice, (tx) => tx.query(`select * from public.list_newsletter_subscribers(10, 0)`)))).toMatch(
+      /not_authorized/,
+    )
+    const rows = await as(db, admin, async (tx) =>
+      (await tx.query<Row>(`select email, total_count from public.list_newsletter_subscribers(10, 0)`)).rows,
+    )
+    expect(rows.map((row) => row.email)).toContain('export@example.com')
+  })
+})
+
+describe('hunter vs maker credit', () => {
+  it('records a hunter submission without changing the owning account', async () => {
+    const hunter = await createUser(db, 'hunter-one@shekargah.test')
+    const product = await submit(hunter, 'شکار اول')
+    await as(db, hunter, (tx) =>
+      tx.query(`select public.set_product_credit($1, 'hunter', null, 'تیم سازنده‌ی بیرونی')`, [product.id]),
+    )
+
+    const { rows } = await db.query<Row>(
+      `select credit_role, hunter_id, maker_credit_name, maker_credit_id, maker_id from public.products where id = $1`,
+      [product.id],
+    )
+    expect(rows[0]!.credit_role).toBe('hunter')
+    expect(rows[0]!.hunter_id).toBe(hunter.id)
+    expect(rows[0]!.maker_credit_name).toBe('تیم سازنده‌ی بیرونی')
+    expect(rows[0]!.maker_credit_id).toBeNull()
+    // The record still belongs to the submitting account.
+    expect(rows[0]!.maker_id).toBe(hunter.id)
+  })
+
+  it('links the credit to an existing account when a username is given', async () => {
+    const makerAcc = await createUser(db, 'real-maker@shekargah.test', 'سازنده واقعی')
+    const hunter = await createUser(db, 'hunter-two@shekargah.test')
+    const product = await submit(hunter, 'شکار دوم')
+
+    await as(db, hunter, (tx) =>
+      tx.query(`select public.set_product_credit($1, 'hunter', $2, null)`, [product.id, 'realmaker']),
+    )
+    const { rows } = await db.query<Row>(`select maker_credit_id from public.products where id = $1`, [product.id])
+    expect(rows[0]!.maker_credit_id).toBe(makerAcc.id)
+  })
+
+  it('requires a credited maker for hunted products and blocks strangers', async () => {
+    const hunter = await createUser(db, 'hunter-three@shekargah.test')
+    const product = await submit(hunter, 'شکار سوم')
+    expect(await errorOf(as(db, hunter, (tx) =>
+      tx.query(`select public.set_product_credit($1, 'hunter', null, null)`, [product.id]),
+    ))).toMatch(/maker_credit_required/)
+
+    const stranger = await createUser(db, 'stranger@shekargah.test')
+    expect(await errorOf(as(db, stranger, (tx) =>
+      tx.query(`select public.set_product_credit($1, 'hunter', null, 'فلانی')`, [product.id]),
+    ))).toMatch(/not_authorized/)
+  })
+
+  it('ranks hunters by the votes their discoveries received', async () => {
+    const hunter = await createUser(db, 'hunter-rank@shekargah.test')
+    const product = await submit(hunter, 'شکار پررأی')
+    await as(db, hunter, (tx) => tx.query(`select public.set_product_credit($1, 'hunter', null, 'فلانی')`, [product.id]))
+    await as(db, admin, (tx) => tx.query(`select public.moderate_product($1, 'approve', null)`, [product.id]))
+    await as(db, alice, (tx) => tx.query(`insert into public.votes (product_id) values ($1)`, [product.id]))
+
+    const rows = await as(db, ANON, async (tx) =>
+      (await tx.query<Row>(`select username, hunt_count, votes_total from public.list_top_hunters(50, 0)`)).rows,
+    )
+    const own = rows.find((row) => String(row.username).startsWith('hunterrank'))
+    expect(own).toBeTruthy()
+    expect(Number(own!.hunt_count)).toBe(1)
+    expect(Number(own!.votes_total)).toBeGreaterThanOrEqual(1)
+  })
+
+  it('treats everything else as a maker credit', async () => {
+    const maker = await createUser(db, 'plain-maker@shekargah.test')
+    const product = await submit(maker, 'محصول ساده')
+    const { rows } = await db.query<Row>(`select credit_role, hunter_id from public.products where id = $1`, [product.id])
+    expect(rows[0]!.credit_role).toBe('maker')
+    expect(rows[0]!.hunter_id).toBeNull()
+  })
+})
+
+describe('admin user management', () => {
+  it('lets admins promote and demote members but never drop the last admin', async () => {
+    const target = await createUser(db, 'role-target@shekargah.test')
+    expect(await errorOf(as(db, alice, (tx) => tx.query(`select public.admin_set_role($1, 'admin')`, [target.id])))).toMatch(
+      /not_authorized/,
+    )
+
+    await as(db, admin, (tx) => tx.query(`select public.admin_set_role($1, 'admin')`, [target.id]))
+    let row = await db.query<Row>(`select role from public.profiles where id = $1`, [target.id])
+    expect(row.rows[0]!.role).toBe('admin')
+
+    await as(db, admin, (tx) => tx.query(`select public.admin_set_role($1, 'user')`, [target.id]))
+    row = await db.query<Row>(`select role from public.profiles where id = $1`, [target.id])
+    expect(row.rows[0]!.role).toBe('user')
+
+    // The bootstrap admin cannot demote themselves out of the role.
+    expect(await errorOf(as(db, admin, (tx) => tx.query(`select public.admin_set_role($1, 'user')`, [admin.id])))).toMatch(
+      /cannot_demote_self/,
+    )
+  })
+})

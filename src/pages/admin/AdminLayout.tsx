@@ -7,6 +7,12 @@ const TABS = [
   { to: '/admin/rejected', label: 'ردشده' },
   { to: '/admin/reports', label: 'گزارش‌ها' },
   { to: '/admin/categories', label: 'دسته‌بندی‌ها' },
+  { to: '/admin/users', label: 'کاربران' },
+  { to: '/admin/banned-words', label: 'عبارت‌های ممنوعه' },
+  { to: '/admin/newsletter', label: 'خبرنامه' },
+  { to: '/admin/companies', label: 'شرکت‌ها' },
+  { to: '/admin/blog', label: 'وبلاگ' },
+  { to: '/admin/seo', label: 'سئو' },
 ]
 
 export function AdminLayout() {

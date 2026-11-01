@@ -4,37 +4,103 @@ import { useAuth } from '@/auth/useAuth'
 import { env } from '@/lib/env'
 import { LogoMark } from '@/components/brand/Logo'
 import { Header } from './Header'
+import { NewsletterSignup } from './NewsletterSignup'
+import { ThemeToggle } from './ThemeToggle'
+
+const COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
+  {
+    title: 'کشف',
+    links: [
+      { to: '/', label: 'محصولات' },
+      { to: '/today', label: 'محصولات امروز' },
+      { to: '/trending', label: 'داغ‌ترین‌ها' },
+      { to: '/leaderboard', label: 'جدول رتبه‌بندی' },
+      { to: '/collections', label: 'مجموعه‌ها' },
+    ],
+  },
+  {
+    title: 'موضوع‌ها',
+    links: [
+      { to: '/topics', label: 'همه‌ی موضوع‌ها' },
+      { to: '/?category=productivity', label: 'بهرهوری' },
+      { to: '/?category=ai', label: 'هوش مصنوعی' },
+      { to: '/?category=open-source', label: 'متن‌باز' },
+      { to: '/?category=fintech', label: 'مالی و پرداخت' },
+    ],
+  },
+  {
+    title: 'جامعه',
+    links: [
+      { to: '/makers', label: 'سازندگان برتر' },
+      { to: '/companies', label: 'شرکت‌ها' },
+      { to: '/blog', label: 'وبلاگ' },
+      { to: '/about', label: 'درباره‌ی شکارگاه' },
+    ],
+  },
+  {
+    title: 'برای سازندگان',
+    links: [
+      { to: '/submit', label: 'معرفی محصول' },
+      { to: '/dashboard', label: 'داشبورد من' },
+      { to: '/feed', label: 'فید شما' },
+    ],
+  },
+]
 
 function Footer() {
   return (
     <footer className="mt-16 border-t border-line/70 bg-surface">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2.5">
-          <LogoMark size={24} />
-          <span>شکارگاه، ویترین محصولات تازه‌ی ایرانی. متن‌باز و غیرتجاری.</span>
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,18rem)_1fr]">
+          <div className="space-y-5">
+            <div className="flex items-center gap-2.5">
+              <LogoMark size={26} />
+              <span className="font-extrabold">شکارگاه</span>
+            </div>
+            <p className="text-[13px] leading-7 text-ink-muted">
+              ویترین محصولات تازه‌ی سازندگان ایرانی. هر روز محصول تازه کشف کن، به بهترین‌ها رأی بده و محصول خودت را معرفی کن.
+            </p>
+            <NewsletterSignup />
+            <div className="flex items-center gap-3 pt-1">
+              <ThemeToggle />
+              <span className="text-xs text-ink-faint">حالت نمایش</span>
+            </div>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {COLUMNS.map((column) => (
+              <nav key={column.title} aria-label={column.title}>
+                <p className="text-sm font-bold text-ink">{column.title}</p>
+                <ul className="mt-3 space-y-2">
+                  {column.links.map((link) => (
+                    <li key={`${column.title}-${link.label}`}>
+                      <Link to={link.to} className="text-[13px] text-ink-muted transition-colors hover:text-ink">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
         </div>
-        <nav aria-label="پیوندهای پانویس" className="flex flex-wrap gap-x-5 gap-y-2">
-          <Link to="/about" className="hover:text-ink">
-            درباره و قوانین
-          </Link>
-          <Link to="/today" className="hover:text-ink">
-            امروز
-          </Link>
-          <Link to="/trending" className="hover:text-ink">
-            داغ‌ترین‌ها
-          </Link>
-          <Link to="/leaderboard" className="hover:text-ink">
-            جدول رتبه‌بندی
-          </Link>
-          <Link to="/submit" className="hover:text-ink">
-            معرفی محصول
-          </Link>
-          {env.repositoryUrl && (
-            <a href={env.repositoryUrl} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
-              کد منبع
-            </a>
-          )}
-        </nav>
+
+        <div className="mt-9 flex flex-col gap-3 border-t border-line/70 pt-6 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>© شکارگاه — متن‌باز و غیرتجاری. ساخته‌شده برای جامعه‌ی سازندگان ایرانی.</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link to="/about" className="hover:text-ink">
+              درباره‌ی ما
+            </Link>
+            <Link to="/blog" className="hover:text-ink">
+              وبلاگ
+            </Link>
+            {env.repositoryUrl && (
+              <a href={env.repositoryUrl} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+                کد منبع
+              </a>
+            )}
+          </div>
+        </div>
       </div>
     </footer>
   )

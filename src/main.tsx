@@ -6,7 +6,10 @@ import { createDefaultApi } from '@/data/api'
 import { Providers } from './Providers'
 import { routes } from './routes'
 import { ConfigErrorScreen } from '@/components/ConfigErrorScreen'
+import { initTheme } from '@/lib/theme'
 import './index.css'
+
+initTheme()
 
 const router = createBrowserRouter(routes)
 

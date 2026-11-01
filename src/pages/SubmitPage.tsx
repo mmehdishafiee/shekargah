@@ -16,7 +16,7 @@ import { Field, Select, TextArea, TextInput } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Feedback'
 import { cardClass } from '@/components/ui/styles'
 
-const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', tags: [], logo: null, screenshots: [] }
+const EMPTY: ProductFormValues = { name: '', tagline: '', description: '', websiteUrl: '', categoryId: '', tags: [], logo: null, screenshots: [], creditRole: 'maker', makerCreditUsername: '', makerCreditName: '' }
 
 export function SubmitPage() {
   useDocumentMeta('معرفی محصول')
@@ -38,7 +38,15 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
   const preview = useObjectUrl(values.logo)
 
   const mutation = useMutation({
-    mutationFn: () => api.submitProduct(values),
+    mutationFn: () =>
+      api.submitProduct({
+        ...values,
+        credit: {
+          role: values.creditRole,
+          makerUsername: values.makerCreditUsername,
+          makerName: values.makerCreditName,
+        },
+      }),
     onSuccess: async (product) => {
       await queryClient.invalidateQueries({ queryKey: ['maker-products'] })
       onDone(product)
@@ -155,6 +163,63 @@ function SubmitForm({ onDone }: { onDone(product: Product): void }) {
                     </button>
                   )
                 })
+              )}
+            </div>
+          )}
+        </Field>
+
+        <Field
+          label="این محصول را خودت ساخته‌ای؟"
+          hint="اگر آن را کشف کرده‌ای و سازنده نیستی، گزینه‌ی شکارچی را انتخاب کن."
+        >
+          {() => (
+            <div className="space-y-3">
+              <div role="radiogroup" aria-label="نقش" className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ['maker', 'من این محصول را ساخته‌ام', 'نام تو به‌عنوان سازنده ثبت می‌شود.'],
+                    ['hunter', 'من این محصول را شکار کرده‌ام', 'نام سازنده‌ی واقعی روی محصول می‌ماند و نام تو به‌عنوان شکارچی ثبت می‌شود.'],
+                  ] as const
+                ).map(([value, title, hint]) => {
+                  const active = values.creditRole === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => set('creditRole', value)}
+                      className={`rounded-control border p-3.5 text-start transition-colors ${
+                        active ? 'border-brand-600 bg-brand-50' : 'border-line bg-surface hover:border-line-strong'
+                      }`}
+                    >
+                      <span className="block text-sm font-bold">{title}</span>
+                      <span className="mt-0.5 block text-[12px] leading-5 text-ink-muted">{hint}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {values.creditRole === 'hunter' && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="نام سازنده‌ی واقعی" error={errors.makerCreditName}>
+                    {(props) => (
+                      <TextInput {...props} dir="auto" value={values.makerCreditName} onChange={(event) => set('makerCreditName', event.target.value)} placeholder="مثلاً: تیم فلان" />
+                    )}
+                  </Field>
+                  <Field label="نام کاربری سازنده در شکارگاه" optional hint="اگر حساب دارد؛ خالی بماند اشکالی ندارد.">
+                    {(props) => (
+                      <TextInput
+                        {...props}
+                        dir="ltr"
+                        className="text-start"
+                        value={values.makerCreditUsername}
+                        onChange={(event) => set('makerCreditUsername', event.target.value.toLowerCase())}
+                        placeholder="username"
+                      />
+                    )}
+                  </Field>
+                </div>
               )}
             </div>
           )}

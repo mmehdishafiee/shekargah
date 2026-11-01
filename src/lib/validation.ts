@@ -12,6 +12,7 @@ export const LIMITS = {
   bio: { max: 280 },
   password: { min: 8, max: 72 },
   reportDetails: { max: 500 },
+  review: { min: 3, max: 1500 },
   moderationNote: { max: 500 },
   categoryName: { min: 2, max: 40 },
   categoryDescription: { max: 200 },
@@ -57,6 +58,9 @@ export interface ProductFormValues {
   tags: string[]
   logo: File | null
   screenshots: File[]
+  creditRole: 'maker' | 'hunter'
+  makerCreditUsername: string
+  makerCreditName: string
 }
 
 export function validateProduct(values: ProductFormValues): FieldErrors<keyof ProductFormValues> {
@@ -69,6 +73,10 @@ export function validateProduct(values: ProductFormValues): FieldErrors<keyof Pr
   else if (!isHttpUrl(values.websiteUrl)) errors.websiteUrl = 'نشانی باید کامل و با https:// یا http:// شروع شود.'
   if (!values.categoryId) errors.categoryId = 'یک دسته‌بندی انتخاب کنید.'
   if (values.tags.length > LIMITS.tags.max) errors.tags = `حداکثر ${formatNumber(LIMITS.tags.max)} برچسب انتخاب کنید.`
+  if (values.creditRole === 'hunter') {
+    const hasCredit = Boolean(values.makerCreditUsername.trim() || values.makerCreditName.trim())
+    if (!hasCredit) errors.makerCreditName = 'نام سازنده‌ی واقعی را بنویس یا نام کاربری‌اش را وارد کن.'
+  }
   errors.logo = validateImage(values.logo, LIMITS.logoBytes)
   if (values.screenshots.length > LIMITS.screenshots.max) {
     errors.screenshots = `حداکثر ${formatNumber(LIMITS.screenshots.max)} اسکرین‌شات انتخاب کنید.`
