@@ -42,7 +42,16 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const queryClient = useQueryClient()
   const { refreshProfile } = useAuth()
   const toast = useToast()
-  const [values, setValues] = useState({ displayName: profile.displayName, username: profile.username, bio: profile.bio ?? '' })
+  const [values, setValues] = useState({
+    displayName: profile.displayName,
+    username: profile.username,
+    bio: profile.bio ?? '',
+    websiteUrl: profile.websiteUrl ?? '',
+    xUsername: profile.xUsername ?? '',
+    telegramUsername: profile.telegramUsername ?? '',
+    linkedinUsername: profile.linkedinUsername ?? '',
+    githubUsername: profile.githubUsername ?? '',
+  })
   const [avatar, setAvatar] = useState<File | null>(null)
   const [removeAvatar, setRemoveAvatar] = useState(false)
   const [errors, setErrors] = useState<Record<string, string | undefined>>({})
@@ -138,9 +147,42 @@ function ProfileForm({ profile }: { profile: Profile }) {
         </Field>
       </div>
 
-      <Field label="معرفی کوتاه" optional error={errors.bio} counter={{ value: values.bio, max: LIMITS.bio.max }}>
-        {(props) => <TextArea {...props} dir="auto" rows={3} value={values.bio} onChange={(e) => set('bio', e.target.value)} />}
+      <Field label="معرفی کوتاه (بیوگرافی)" optional error={errors.bio} counter={{ value: values.bio, max: LIMITS.bio.max }}>
+        {(props) => (
+          <TextArea
+            {...props}
+            dir="auto"
+            rows={3}
+            value={values.bio}
+            onChange={(e) => set('bio', e.target.value)}
+            placeholder="چند خط درباره‌ی خودت، محصولاتت یا علاقه‌هایت."
+          />
+        )}
       </Field>
+
+      <fieldset className="space-y-4 rounded-lg border border-line/70 p-4">
+        <legend className="px-1.5 text-sm font-bold">پیوندهای عمومی</legend>
+        <p className="text-[13px] text-ink-muted">اختیاری. فقط چیزی را پر کن که می‌خواهی در پروفایل عمومی‌ات دیده شود.</p>
+        <Field label="وب‌سایت" optional error={errors.websiteUrl}>
+          {(props) => (
+            <TextInput {...props} dir="ltr" type="url" className="text-start" placeholder="https://" value={values.websiteUrl} onChange={(e) => set('websiteUrl', e.target.value)} />
+          )}
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="ایکس" optional hint="بدون @">
+            {(props) => <TextInput {...props} dir="ltr" className="text-start" value={values.xUsername} onChange={(e) => set('xUsername', e.target.value)} />}
+          </Field>
+          <Field label="تلگرام" optional hint="بدون @">
+            {(props) => <TextInput {...props} dir="ltr" className="text-start" value={values.telegramUsername} onChange={(e) => set('telegramUsername', e.target.value)} />}
+          </Field>
+          <Field label="لینکدین" optional hint="بخش انتهایی نشانی پروفایل">
+            {(props) => <TextInput {...props} dir="ltr" className="text-start" value={values.linkedinUsername} onChange={(e) => set('linkedinUsername', e.target.value)} />}
+          </Field>
+          <Field label="گیت‌هاب" optional hint="نام کاربری">
+            {(props) => <TextInput {...props} dir="ltr" className="text-start" value={values.githubUsername} onChange={(e) => set('githubUsername', e.target.value)} />}
+          </Field>
+        </div>
+      </fieldset>
 
       {Boolean(error) && <Notice tone="danger">{errorMessage(error)}</Notice>}
       <div className="flex justify-end">

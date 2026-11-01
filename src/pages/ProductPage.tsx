@@ -15,6 +15,7 @@ import { ProductLogo } from '@/components/product/ProductLogo'
 import { RatingStars } from '@/components/product/RatingStars'
 import { ReviewSection } from '@/components/product/ReviewSection'
 import { VerifiedBadge } from '@/components/product/VerifiedBadge'
+import { BidiText } from '@/components/ui/BidiText'
 import { ReportDialog } from '@/components/product/ReportDialog'
 import { SaveButton } from '@/components/product/SaveButton'
 import { ShareButton } from '@/components/product/ShareButton'
@@ -152,9 +153,7 @@ function ProductDetails({ product }: { product: Product }) {
         </header>
 
         <section aria-label="توضیحات محصول" className={`${cardClass} p-5 sm:p-6`}>
-          <p className="bidi whitespace-pre-line break-words text-[15px] leading-8">
-            {product.description}
-          </p>
+          <BidiText className="break-words text-[15px] leading-8" text={product.description} />
         </section>
 
         {product.screenshots.length > 0 && (

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button'
 import { TextArea } from '@/components/ui/Field'
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
+import { BidiText } from '@/components/ui/BidiText'
 import { RatingPicker, RatingStars } from './RatingStars'
 
 /** Reviews with 1–5 stars: one per user, editable in place. */
@@ -182,9 +183,7 @@ export function ReviewSection({ productId, productName }: { productId: string; p
                   {profile?.id === review.author.id && <span className="text-xs text-brand-700">نقد تو</span>}
                 </div>
                 {review.body && (
-                  <p dir="auto" className="mt-1.5 whitespace-pre-line break-words text-sm leading-7">
-                    {review.body}
-                  </p>
+                  <BidiText className="mt-1.5 break-words text-sm leading-7" text={review.body} />
                 )}
               </div>
             </li>

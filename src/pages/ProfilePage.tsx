@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Package, Settings, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
+import { AtSign, Briefcase, Code2, Globe, Send } from 'lucide-react'
 import { useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername } from '@/data/queries'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
@@ -18,6 +19,37 @@ import { ConfirmDialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorState, PageLoader, Spinner } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
 import { cardClass } from '@/components/ui/styles'
+
+/** Social links a member chose to publish. */
+function ProfileLinks({ profile }: { profile: { websiteUrl: string | null; xUsername: string | null; telegramUsername: string | null; linkedinUsername: string | null; githubUsername: string | null } }) {
+  const links = [
+    profile.websiteUrl && { href: profile.websiteUrl, label: 'وب‌سایت', icon: Globe, text: null },
+    profile.xUsername && { href: `https://x.com/${profile.xUsername}`, label: 'ایکس', icon: AtSign, text: `@${profile.xUsername}` },
+    profile.telegramUsername && { href: `https://t.me/${profile.telegramUsername}`, label: 'تلگرام', icon: Send, text: `@${profile.telegramUsername}` },
+    profile.linkedinUsername && { href: `https://www.linkedin.com/in/${profile.linkedinUsername}`, label: 'لینکدین', icon: Briefcase, text: profile.linkedinUsername },
+    profile.githubUsername && { href: `https://github.com/${profile.githubUsername}`, label: 'گیت‌هاب', icon: Code2, text: profile.githubUsername },
+  ].filter(Boolean) as { href: string; label: string; icon: typeof Globe; text: string | null }[]
+
+  if (links.length === 0) return null
+
+  return (
+    <ul className="mt-3 flex flex-wrap gap-2">
+      {links.map((link) => (
+        <li key={link.href}>
+          <a
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer nofollow me"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+          >
+            <link.icon size={13} strokeWidth={1.75} aria-hidden />
+            <span className="ltr">{link.text ?? link.label}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export function ProfilePage() {
   const { username = '' } = useParams()
@@ -57,6 +89,7 @@ export function ProfilePage() {
               {user.bio}
             </p>
           )}
+          <ProfileLinks profile={user} />
           <p className="mt-3 flex items-center gap-1.5 text-[13px] text-ink-muted">
             <CalendarDays size={15} strokeWidth={1.75} aria-hidden />
             عضو از {formatDate(user.createdAt)}

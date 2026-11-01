@@ -6,28 +6,66 @@ import { useApi } from '@/data/api'
 import { errorMessage } from '@/lib/errors'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { compact, hasErrors, validateDisplayName, validateEmail, validatePassword } from '@/lib/validation'
-import { LogoMark } from '@/components/brand/Logo'
+import { Logo } from '@/components/brand/Logo'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Field, TextInput } from '@/components/ui/Field'
 import { Notice, PageLoader } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
 import { cardClass } from '@/components/ui/styles'
 
-function AuthCard({ title, subtitle, children, footer }: { title: string; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode }) {
+/** Shared shell for every auth screen: centred card, brand mark, quiet footer. */
+function AuthShell({
+  title,
+  subtitle,
+  children,
+  footer,
+}: {
+  title: string
+  subtitle?: ReactNode
+  children: ReactNode
+  footer?: ReactNode
+}) {
   return (
-    <div className="mx-auto max-w-[26rem] py-4 sm:py-8">
+    <div className="mx-auto flex w-full max-w-[26rem] flex-col py-6 sm:py-12">
+      <div className="mb-7 text-center">
+        <Link to="/" className="inline-flex rounded-lg" aria-label="شکارگاه">
+          <Logo />
+        </Link>
+      </div>
+
       <div className={`${cardClass} p-6 sm:p-8`}>
-        <LogoMark size={40} />
-        <h1 className="mt-5 text-xl font-extrabold">{title}</h1>
-        {subtitle && <p className="mt-1.5 text-sm text-ink-muted">{subtitle}</p>}
+        <h1 className="text-xl font-extrabold">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm leading-6 text-ink-muted">{subtitle}</p>}
         <div className="mt-6">{children}</div>
       </div>
-      {footer && <p className="mt-5 text-center text-sm text-ink-muted">{footer}</p>}
+
+      {footer && <div className="mt-6 text-center text-sm text-ink-muted">{footer}</div>}
     </div>
   )
 }
 
 const linkClass = 'font-semibold text-brand-700 underline-offset-4 hover:underline'
+
+/** Social sign-in buttons, shown above the email form on the login screen. */
+function OAuthButtons({ onPick, busy }: { onPick: (provider: 'google' | 'github') => void; busy: boolean }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Button type="button" variant="secondary" loading={busy} onClick={() => onPick('google')}>
+          ورود با گوگل
+        </Button>
+        <Button type="button" variant="secondary" loading={busy} onClick={() => onPick('github')}>
+          ورود با گیت‌هاب
+        </Button>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-ink-faint" aria-hidden>
+        <span className="h-px flex-1 bg-line" />
+        یا با ایمیل
+        <span className="h-px flex-1 bg-line" />
+      </div>
+    </div>
+  )
+}
 
 function useRedirectTarget() {
   const location = useLocation()
@@ -36,7 +74,7 @@ function useRedirectTarget() {
 }
 
 export function LoginPage() {
-  useDocumentMeta('ورود')
+  useDocumentMeta('ورود', 'به شکارگاه وارد شو تا رأی بدهی، نقد بنویسی و محصول معرفی کنی.', { path: '/login' })
   const api = useApi()
   const { session, loading } = useAuth()
   const navigate = useNavigate()
@@ -81,9 +119,9 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard
+    <AuthShell
       title="ورود به شکارگاه"
-      subtitle="برای رأی دادن، نوشتن نظر و معرفی محصول وارد حسابت شو."
+      subtitle="برای رأی دادن، نوشتن نقد و معرفی محصول وارد حسابت شو."
       footer={
         <>
           حساب نداری؟{' '}
@@ -93,25 +131,12 @@ export function LoginPage() {
         </>
       }
     >
-      <div className="mb-5 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Button type="button" variant="secondary" loading={busy} onClick={() => void submitOAuth('google')}>
-            ورود با گوگل
-          </Button>
-          <Button type="button" variant="secondary" loading={busy} onClick={() => void submitOAuth('github')}>
-            ورود با گیت‌هاب
-          </Button>
-        </div>
-        <div className="flex items-center gap-3 text-xs text-ink-muted" aria-hidden>
-          <span className="h-px flex-1 bg-line" />
-          یا با ایمیل وارد شو
-          <span className="h-px flex-1 bg-line" />
-        </div>
-      </div>
+      <OAuthButtons onPick={submitOAuth} busy={busy} />
+
       <form onSubmit={submit} noValidate className="space-y-4">
         <Field label="ایمیل" error={errors.email}>
           {(props) => (
-            <TextInput {...props} type="email" dir="ltr" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <TextInput {...props} type="email" dir="ltr" className="text-start" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
           )}
         </Field>
         <Field label="رمز عبور" error={errors.password}>
@@ -120,14 +145,15 @@ export function LoginPage() {
               {...props}
               type="password"
               dir="ltr"
+              className="text-start"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
           )}
         </Field>
         <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-sm text-ink-muted hover:text-ink">
+          <Link to="/forgot-password" className="text-[13px] text-ink-muted hover:text-ink">
             رمزت را فراموش کرده‌ای؟
           </Link>
         </div>
@@ -136,12 +162,12 @@ export function LoginPage() {
           ورود
         </Button>
       </form>
-    </AuthCard>
+    </AuthShell>
   )
 }
 
 export function SignupPage() {
-  useDocumentMeta('ثبت‌نام')
+  useDocumentMeta('ثبت‌نام', 'حساب شکارگاه بساز و محصولت را معرفی کن یا محصول‌های تازه را شکار کن.', { path: '/signup' })
   const api = useApi()
   const { session, loading } = useAuth()
   const navigate = useNavigate()
@@ -158,18 +184,18 @@ export function SignupPage() {
 
   if (confirmationSentTo) {
     return (
-      <AuthCard title="ایمیلت را تأیید کن">
-        <div className="flex gap-3 text-sm">
-          <MailCheck size={22} strokeWidth={1.75} className="shrink-0 text-success-700" aria-hidden />
+      <AuthShell title="ایمیلت را تأیید کن">
+        <div className="flex gap-3 text-sm leading-7">
+          <MailCheck size={22} strokeWidth={1.75} className="mt-0.5 shrink-0 text-success-700" aria-hidden />
           <p>
-            لینک تأیید به <bdi className="ltr font-semibold">{confirmationSentTo}</bdi> فرستاده شد. بعد از باز کردن لینک، می‌توانی وارد شوی.
+            لینک تأیید به <bdi className="ltr font-semibold">{confirmationSentTo}</bdi> فرستاده شد. بعد از باز کردن لینک می‌توانی وارد شوی.
             اگر ایمیل را نمی‌بینی، پوشه‌ی هرزنامه را هم نگاه کن.
           </p>
         </div>
         <ButtonLink to="/login" variant="secondary" className="mt-6 w-full">
           رفتن به صفحه‌ی ورود
         </ButtonLink>
-      </AuthCard>
+      </AuthShell>
     )
   }
 
@@ -201,10 +227,22 @@ export function SignupPage() {
     }
   }
 
+  const submitOAuth = async (provider: 'google' | 'github') => {
+    setBusy(true)
+    setError(null)
+    try {
+      sessionStorage.setItem('shekargah:auth-target', target)
+      await api.signInWithOAuth(provider, `${window.location.origin}/`)
+    } catch (caught) {
+      setError(caught)
+      setBusy(false)
+    }
+  }
+
   return (
-    <AuthCard
+    <AuthShell
       title="ساخت حساب"
-      subtitle="با حساب شکارگاه می‌توانی محصول معرفی کنی، رأی بدهی و نظر بنویسی."
+      subtitle="با حساب شکارگاه می‌توانی محصول معرفی کنی، محصول کشف کنی و رأی بدهی."
       footer={
         <>
           حساب داری؟{' '}
@@ -214,29 +252,46 @@ export function SignupPage() {
         </>
       }
     >
+      <OAuthButtons onPick={submitOAuth} busy={busy} />
+
       <form onSubmit={submit} noValidate className="space-y-4">
-        <Field label="نام نمایشی" hint="این نام کنار محصولات و نظرهایت دیده می‌شود." error={errors.displayName}>
-          {(props) => <TextInput {...props} dir="auto" autoComplete="name" value={values.displayName} onChange={(e) => set('displayName', e.target.value)} />}
+        <Field label="نام نمایشی" hint="این نام کنار محصولات و نقدهایت دیده می‌شود." error={errors.displayName}>
+          {(props) => (
+            <TextInput {...props} dir="auto" autoComplete="name" value={values.displayName} onChange={(event) => set('displayName', event.target.value)} />
+          )}
         </Field>
         <Field label="ایمیل" error={errors.email}>
-          {(props) => <TextInput {...props} type="email" dir="ltr" autoComplete="email" value={values.email} onChange={(e) => set('email', e.target.value)} />}
+          {(props) => (
+            <TextInput {...props} type="email" dir="ltr" className="text-start" autoComplete="email" value={values.email} onChange={(event) => set('email', event.target.value)} />
+          )}
         </Field>
         <Field label="رمز عبور" hint="دست‌کم ۸ نویسه." error={errors.password}>
           {(props) => (
-            <TextInput {...props} type="password" dir="ltr" autoComplete="new-password" value={values.password} onChange={(e) => set('password', e.target.value)} />
+            <TextInput
+              {...props}
+              type="password"
+              dir="ltr"
+              className="text-start"
+              autoComplete="new-password"
+              value={values.password}
+              onChange={(event) => set('password', event.target.value)}
+            />
           )}
         </Field>
         {Boolean(error) && <Notice tone="danger">{errorMessage(error)}</Notice>}
         <Button type="submit" loading={busy} className="w-full">
           ساخت حساب
         </Button>
+        <p className="text-center text-[12px] leading-6 text-ink-faint">
+          با ساخت حساب، <Link to="/about" className={linkClass}>قوانین شکارگاه</Link> را می‌پذیری.
+        </p>
       </form>
-    </AuthCard>
+    </AuthShell>
   )
 }
 
 export function ForgotPasswordPage() {
-  useDocumentMeta('بازیابی رمز عبور')
+  useDocumentMeta('بازیابی رمز عبور', undefined, { path: '/forgot-password', robots: 'noindex' })
   const api = useApi()
   const [email, setEmail] = useState('')
   const [fieldError, setFieldError] = useState<string>()
@@ -262,7 +317,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthCard
+    <AuthShell
       title="بازیابی رمز عبور"
       subtitle="ایمیل حسابت را وارد کن تا لینک انتخاب رمز تازه برایت فرستاده شود."
       footer={
@@ -278,7 +333,7 @@ export function ForgotPasswordPage() {
       ) : (
         <form onSubmit={submit} noValidate className="space-y-4">
           <Field label="ایمیل" error={fieldError}>
-            {(props) => <TextInput {...props} type="email" dir="ltr" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
+            {(props) => <TextInput {...props} type="email" dir="ltr" className="text-start" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />}
           </Field>
           {Boolean(error) && <Notice tone="danger">{errorMessage(error)}</Notice>}
           <Button type="submit" loading={busy} className="w-full">
@@ -286,12 +341,12 @@ export function ForgotPasswordPage() {
           </Button>
         </form>
       )}
-    </AuthCard>
+    </AuthShell>
   )
 }
 
 export function ResetPasswordPage() {
-  useDocumentMeta('انتخاب رمز تازه')
+  useDocumentMeta('انتخاب رمز تازه', undefined, { path: '/reset-password', robots: 'noindex' })
   const api = useApi()
   const { session, loading, clearPasswordRecovery } = useAuth()
   const navigate = useNavigate()
@@ -305,12 +360,12 @@ export function ResetPasswordPage() {
   if (loading) return <PageLoader />
   if (!session) {
     return (
-      <AuthCard title="لینک بازیابی معتبر نیست">
-        <p className="text-sm text-ink-muted">این لینک منقضی شده یا قبلاً استفاده شده است. یک لینک تازه درخواست کن.</p>
+      <AuthShell title="لینک بازیابی معتبر نیست">
+        <p className="text-sm leading-7 text-ink-muted">این لینک منقضی شده یا قبلاً استفاده شده است. یک لینک تازه درخواست کن.</p>
         <ButtonLink to="/forgot-password" className="mt-6 w-full">
           درخواست لینک تازه
         </ButtonLink>
-      </AuthCard>
+      </AuthShell>
     )
   }
 
@@ -336,19 +391,23 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard title="انتخاب رمز تازه">
+    <AuthShell title="انتخاب رمز تازه">
       <form onSubmit={submit} noValidate className="space-y-4">
         <Field label="رمز تازه" hint="دست‌کم ۸ نویسه." error={errors.password}>
-          {(props) => <TextInput {...props} type="password" dir="ltr" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+          {(props) => (
+            <TextInput {...props} type="password" dir="ltr" className="text-start" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          )}
         </Field>
         <Field label="تکرار رمز تازه" error={errors.repeat}>
-          {(props) => <TextInput {...props} type="password" dir="ltr" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} />}
+          {(props) => (
+            <TextInput {...props} type="password" dir="ltr" className="text-start" autoComplete="new-password" value={repeat} onChange={(event) => setRepeat(event.target.value)} />
+          )}
         </Field>
         {Boolean(error) && <Notice tone="danger">{errorMessage(error)}</Notice>}
         <Button type="submit" loading={busy} className="w-full">
           ذخیره‌ی رمز تازه
         </Button>
       </form>
-    </AuthCard>
+    </AuthShell>
   )
 }

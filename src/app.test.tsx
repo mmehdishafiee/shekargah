@@ -11,23 +11,23 @@ async function signedInApi(email: string) {
 }
 
 describe('home feed', () => {
-  it('shows published products ranked by votes, in Persian', async () => {
+  it('groups products by day, each day ranked by votes', async () => {
     renderApp('/')
     expect(await screen.findByRole('heading', { level: 1, name: 'کشف محصولات تازه' })).toBeInTheDocument()
-    const list = await screen.findByRole('list', { name: 'فهرست محصولات' })
-    const items = within(list).getAllByRole('article')
-    expect(items[0]).toHaveTextContent('جلالی‌کیت')
+    // The default home surface is the day-by-day winners list.
+    expect(await screen.findByRole('heading', { level: 2, name: 'محصولات امروز' })).toBeInTheDocument()
+    const lists = await screen.findAllByRole('list', { name: /محصولات/ })
+    const items = within(lists[0]!).getAllByRole('article')
+    expect(items.length).toBeGreaterThan(0)
     expect(items[0]).toHaveTextContent('۱.')
-    expect(screen.queryByText('کارنما')).not.toBeInTheDocument()
   })
 
   it('filters by category and searches', async () => {
     const { user } = renderApp('/')
-    await screen.findByText('جلالی‌کیت')
+    await screen.findByRole('heading', { level: 1, name: 'کشف محصولات تازه' })
     await user.click(screen.getByRole('button', { name: 'آموزش' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'آموزش' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('جلالی‌کیت')).not.toBeInTheDocument())
-    expect(screen.getByText('زبانچه')).toBeInTheDocument()
+    expect(await screen.findByText('زبانچه')).toBeInTheDocument()
 
     const [search] = screen.getAllByRole('searchbox', { name: 'جست‌وجوی محصولات' })
     await user.type(search!, 'رصد{Enter}')
@@ -49,15 +49,17 @@ describe('voting', () => {
   })
 
   it('toggles a vote for signed-in users', async () => {
-    const { user } = renderApp('/', await signedInApi(DEMO_USER_EMAIL))
-    const button = await screen.findByRole('button', { name: 'رأی به جلالی‌کیت' })
+    const api = await signedInApi(DEMO_USER_EMAIL)
+    const product = (await api.listProducts({ sort: 'popular', page: 0 })).items[0]!
+    const { user } = renderApp(`/products/${encodeURIComponent(product.slug)}`, api)
+    const button = await screen.findByRole('button', { name: `رأی به ${product.name}` })
     expect(button).toHaveTextContent('۲۱۴')
     await user.click(button)
-    const voted = await screen.findByRole('button', { name: 'پس گرفتن رأی از جلالی‌کیت' })
+    const voted = await screen.findByRole('button', { name: `پس گرفتن رأی از ${product.name}` })
     expect(voted).toHaveAttribute('aria-pressed', 'true')
     expect(voted).toHaveTextContent('۲۱۵')
     await user.click(voted)
-    expect(await screen.findByRole('button', { name: 'رأی به جلالی‌کیت' })).toHaveTextContent('۲۱۴')
+    expect(await screen.findByRole('button', { name: `رأی به ${product.name}` })).toHaveTextContent('۲۱۴')
   })
 })
 
@@ -154,12 +156,11 @@ describe('admin', () => {
 })
 
 describe('saved products', () => {
-  it('shows a save button on feed rows and saves the product', async () => {
+  it('shows a save button on a product and saves it', async () => {
     const api = await signedInApi(DEMO_USER_EMAIL)
-    const { user } = renderApp('/', api)
-    const list = await screen.findByRole('list', { name: 'فهرست محصولات' })
-    const first = within(list).getAllByRole('article')[0]!
-    const saveButton = within(first).getByRole('button', { name: /ذخیره/ })
+    const product = (await api.listProducts({ sort: 'popular', page: 0 })).items[0]!
+    const { user } = renderApp(`/products/${encodeURIComponent(product.slug)}`, api)
+    const saveButton = await screen.findByRole('button', { name: `ذخیره‌ی ${product.name}` })
     await user.click(saveButton)
     await waitFor(async () => {
       const saved = await api.listMySavedProducts(0)

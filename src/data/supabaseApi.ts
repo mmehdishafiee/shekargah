@@ -1,5 +1,6 @@
 import { AuthError, createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, type ApiErrorCode } from '@/lib/errors'
+import { toWebpFile } from '@/lib/image'
 import { normalizeFa } from '@/lib/text'
 import { parseStored } from './storage'
 import {
@@ -13,6 +14,7 @@ import {
   type PostSummary,
   type Notification,
   type Product,
+  type DailyGroup,
   type ProductStatus,
   type ProductSummary,
   type Profile,
@@ -40,6 +42,11 @@ interface ProfileRow {
   bio?: string | null
   role?: 'user' | 'admin'
   created_at?: string
+  website_url?: string | null
+  x_username?: string | null
+  telegram_username?: string | null
+  linkedin_username?: string | null
+  github_username?: string | null
 }
 
 interface CategoryRow {
@@ -152,7 +159,7 @@ interface ReportRow {
 }
 
 const PROFILE_SUMMARY = 'id, username, display_name, avatar_path'
-const PROFILE_FULL = `${PROFILE_SUMMARY}, bio, role, created_at`
+const PROFILE_FULL = `${PROFILE_SUMMARY}, bio, role, created_at, website_url, x_username, telegram_username, linkedin_username, github_username`
 const PRODUCT_SELECT = `id, slug, name, tagline, description, website_url, logo_path, status, votes_count,
   comments_count, views_count, rating_avg, rating_count, verified, published_at, created_at, moderation_note, moderated_at,
   category:categories(id, slug, name),
@@ -305,6 +312,11 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     bio: row.bio ?? null,
     role: row.role ?? 'user',
     createdAt: row.created_at ?? new Date().toISOString(),
+    websiteUrl: row.website_url ?? null,
+    xUsername: row.x_username ?? null,
+    telegramUsername: row.telegram_username ?? null,
+    linkedinUsername: row.linkedin_username ?? null,
+    githubUsername: row.github_username ?? null,
   })
   const toCategory = (row: CategoryRow): Category => ({
     id: row.id,
@@ -367,7 +379,9 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     return id
   }
 
-  async function upload(bucket: string, file: File, ownerId: string): Promise<string> {
+  async function upload(bucket: string, input: File, ownerId: string): Promise<string> {
+    // Normalise to WebP in the browser so storage only ever holds WebP files.
+    const file = await toWebpFile(input)
     const extension = EXTENSIONS[file.type]
     if (!extension) throw new ApiError('upload_failed', `unsupported type ${file.type}`)
     const objectPath = `${ownerId}/${crypto.randomUUID()}.${extension}`
@@ -494,6 +508,11 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
           display_name: normalizeFa(input.displayName.trim()),
           bio: input.bio.trim() ? normalizeFa(input.bio.trim()) : null,
           avatar_path: avatarPath,
+          website_url: input.websiteUrl?.trim() || null,
+          x_username: input.xUsername?.trim() || null,
+          telegram_username: input.telegramUsername?.trim() || null,
+          linkedin_username: input.linkedinUsername?.trim() || null,
+          github_username: input.githubUsername?.trim() || null,
         })
         .eq('id', userId)
         .select(PROFILE_FULL)
@@ -754,6 +773,54 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       const total = Number(rows[0]?.total_count ?? 0)
       const items = rows.map((row) => toRanked(row, publicUrl))
       return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
+    },
+
+    async listDailyWinners({ days = 7, perDay = 5 }) {
+      const rows = check(await supabase.rpc('list_daily_winners', { p_days: days, p_per_day: perDay })) as {
+        day: string
+        rank: number
+        id: string
+        slug: string
+        name: string
+        tagline: string
+        logo_path: string | null
+        votes_count: number
+        comments_count: number
+        views_count: number
+        published_at: string | null
+        category_slug: string | null
+        category_name: string | null
+        rating_avg: number | null
+        rating_count: number | null
+        verified: boolean | null
+      }[]
+      const groups = new Map<string, DailyGroup>()
+      for (const row of rows) {
+        const key = String(row.day).slice(0, 10)
+        if (!groups.has(key)) groups.set(key, { day: key, items: [] })
+        groups.get(key)!.items.push({
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+          tagline: row.tagline,
+          logoUrl: publicUrl('product-logos', row.logo_path),
+          votesCount: row.votes_count,
+          commentsCount: row.comments_count,
+          viewsCount: row.views_count,
+          ratingAvg: Number(row.rating_avg ?? 0),
+          ratingCount: Number(row.rating_count ?? 0),
+          verified: Boolean(row.verified),
+          publishedAt: row.published_at,
+          category:
+            row.category_slug && row.category_name
+              ? { id: '', slug: row.category_slug, name: row.category_name }
+              : null,
+          tags: [],
+          rank: row.rank,
+          categoryName: row.category_name,
+        })
+      }
+      return [...groups.values()]
     },
 
     async listLeaderboard({ period, page }) {

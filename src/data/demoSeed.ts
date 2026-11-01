@@ -12,6 +12,11 @@ export interface DemoUser {
   displayName: string
   bio: string | null
   avatarUrl: string | null
+  websiteUrl: string | null
+  xUsername: string | null
+  telegramUsername: string | null
+  linkedinUsername: string | null
+  githubUsername: string | null
   role: Role
   createdAt: string
 }
@@ -457,6 +462,11 @@ export function createDemoState(now: Date = new Date()): DemoState {
     displayName,
     bio,
     avatarUrl: null,
+    websiteUrl: null,
+    xUsername: null,
+    telegramUsername: null,
+    linkedinUsername: null,
+    githubUsername: null,
     role,
     createdAt: ago(24 * (120 - index * 7)),
   }))

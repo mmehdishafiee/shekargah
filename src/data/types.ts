@@ -1,6 +1,6 @@
 export type ProductStatus = 'pending' | 'published' | 'rejected'
 export type SortOrder = 'popular' | 'newest'
-export type LeaderboardPeriod = 'daily' | 'weekly'
+export type LeaderboardPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly'
 export type Role = 'user' | 'admin'
 export type ReportReason = 'spam' | 'inappropriate' | 'misleading' | 'copyright' | 'other'
 export type ReportStatus = 'open' | 'resolved' | 'dismissed'
@@ -66,10 +66,24 @@ export interface ProfileSummary {
   avatarUrl: string | null
 }
 
-export interface Profile extends ProfileSummary {
+export interface ProfileLinks {
+  websiteUrl: string | null
+  xUsername: string | null
+  telegramUsername: string | null
+  linkedinUsername: string | null
+  githubUsername: string | null
+}
+
+export interface Profile extends ProfileSummary, ProfileLinks {
   bio: string | null
   role: Role
   createdAt: string
+}
+
+/** One day's top products, as shown on the home page. */
+export interface DailyGroup {
+  day: string
+  items: (ProductSummary & { rank: number; categoryName: string | null })[]
 }
 
 export interface ProductSummary {
@@ -317,7 +331,7 @@ export interface SubmitProductInput {
   credit: ProductCreditInput
 }
 
-export interface ProfileUpdate {
+export interface ProfileUpdate extends Partial<ProfileLinks> {
   username: string
   displayName: string
   bio: string
@@ -397,6 +411,8 @@ export interface ShekargahApi {
 
   /** Products published on a Tehran calendar day (defaults to today). */
   listDailyProducts(input: { date?: string; page: number }): Promise<Page<RankedProduct>>
+  /** Top products of each recent day (the home discovery surface). */
+  listDailyWinners(input: { days?: number; perDay?: number }): Promise<DailyGroup[]>
   /** Products ranked by votes received inside a window, not lifetime totals. */
   listLeaderboard(input: { period: LeaderboardPeriod; page: number }): Promise<Page<RankedProduct>>
   /** Products with the fastest recent engagement. */

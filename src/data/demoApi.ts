@@ -107,6 +107,11 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
     bio: user.bio,
     role: user.role,
     createdAt: user.createdAt,
+    websiteUrl: user.websiteUrl,
+    xUsername: user.xUsername,
+    telegramUsername: user.telegramUsername,
+    linkedinUsername: user.linkedinUsername,
+    githubUsername: user.githubUsername,
   })
   const categoryRef = (id: string) => {
     const category = state.categories.find((c) => c.id === id)
@@ -206,6 +211,11 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         displayName: normalizeFa(displayName.trim()) || username,
         bio: null,
         avatarUrl: null,
+        websiteUrl: null,
+        xUsername: null,
+        telegramUsername: null,
+        linkedinUsername: null,
+        githubUsername: null,
         role: 'user',
         createdAt: new Date().toISOString(),
       }
@@ -267,6 +277,11 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       user.bio = input.bio.trim() ? normalizeFa(input.bio.trim()) : null
       if (input.removeAvatar) user.avatarUrl = null
       if (input.avatar) user.avatarUrl = await readAsDataUrl(input.avatar)
+      user.websiteUrl = input.websiteUrl?.trim() || null
+      user.xUsername = input.xUsername?.replace(/^@/, '').trim() || null
+      user.telegramUsername = input.telegramUsername?.replace(/^@/, '').trim() || null
+      user.linkedinUsername = input.linkedinUsername?.trim() || null
+      user.githubUsername = input.githubUsername?.trim() || null
       persist()
       return toProfile(user)
     },
@@ -511,6 +526,27 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         score: null,
       }))
       return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+    },
+
+    async listDailyWinners({ days = 7, perDay = 5 }) {
+      await wait()
+      const groups = new Map<string, { day: string; items: (ProductSummary & { rank: number; categoryName: string | null })[] }>()
+      const published = state.products
+        .filter((p) => p.status === 'published' && p.publishedAt)
+        .sort((a, b) => b.votesCount - a.votesCount || (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+      for (const product of published) {
+        const day = tehranDateLabel(new Date(product.publishedAt!))
+        if (!groups.has(day)) groups.set(day, { day, items: [] })
+        groups.get(day)!.items.push({
+          ...toProductSummary(product),
+          rank: groups.get(day)!.items.length + 1,
+          categoryName: state.categories.find((c) => c.id === product.categoryId)?.name ?? null,
+        })
+      }
+      return [...groups.values()]
+        .sort((a, b) => b.day.localeCompare(a.day))
+        .slice(0, days)
+        .map((group) => ({ day: group.day, items: group.items.slice(0, perDay) }))
     },
 
     async listLeaderboard({ period, page }) {

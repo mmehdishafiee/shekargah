@@ -12,6 +12,7 @@ import { hostnameOf } from '@/lib/text'
 import { LIMITS } from '@/lib/validation'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { TagChips } from '@/components/product/TagChips'
+import { BidiText } from '@/components/ui/BidiText'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorState, ProductRowSkeleton } from '@/components/ui/Feedback'
@@ -151,9 +152,7 @@ function ModerationCard({ product }: { product: Product }) {
 
       <details className="mt-4 rounded-lg bg-sunken/70 px-4 py-3 text-sm">
         <summary className="cursor-pointer font-medium text-ink-muted">توضیحات کامل</summary>
-        <p className="bidi mt-2 whitespace-pre-line break-words leading-7">
-          {product.description}
-        </p>
+        <BidiText className="mt-2 break-words leading-7" text={product.description} />
       </details>
 
       {product.moderatedAt && (

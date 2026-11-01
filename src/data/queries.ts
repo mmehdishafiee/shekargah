@@ -338,3 +338,12 @@ export function useTopHunters() {
     placeholderData: keepPreviousData,
   })
 }
+
+export function useDailyWinners(days = 7, perDay = 5) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['daily-winners', days, perDay],
+    queryFn: () => api.listDailyWinners({ days, perDay }),
+    staleTime: 2 * 60_000,
+  })
+}

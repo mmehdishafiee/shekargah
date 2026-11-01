@@ -1,9 +1,9 @@
 import { Link, useSearchParams } from 'react-router'
 import { PackageSearch, Plus } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
-import { useCategories, useMySavedIds, useMyVotes, useProductFeed, useSiteStats, useSponsors, useTopics, useTopMakers } from '@/data/queries'
-import type { SortOrder } from '@/data/types'
-import { formatIsoDay, formatNumber } from '@/lib/format'
+import { useCategories, useDailyWinners, useMySavedIds, useMyVotes, useProductFeed, useSiteStats, useSponsors, useTopics, useTopMakers } from '@/data/queries'
+import type { ProductSummary, SortOrder } from '@/data/types'
+import { formatDay, formatIsoDay, formatNumber } from '@/lib/format'
 import { tehranDateLabel } from '@/lib/engagement'
 import { useDocumentMeta, websiteSchema } from '@/lib/useDocumentMeta'
 import { profilePath } from '@/lib/paths'
@@ -40,6 +40,9 @@ export function HomePage() {
   const stats = useSiteStats()
   const hotTopics = useTopics()
   const topMakers = useTopMakers()
+  // The default home view is the day-by-day winners list, like a daily digest.
+  const isBrowsing = Boolean(search) || Boolean(category)
+  const winners = useDailyWinners(7, 5)
 
   const activeCategory = categories.data?.find((c) => c.slug === category)
   const heading = search ? `نتیجه‌های «${search}»` : (activeCategory?.name ?? 'کشف محصولات تازه')
@@ -128,6 +131,18 @@ export function HomePage() {
           </div>
         )}
 
+        {!isBrowsing && (
+          <DailyWinners
+            groups={winners.data ?? []}
+            loading={winners.isPending}
+            error={winners.error}
+            onRetry={() => winners.refetch()}
+            votes={votes.data}
+            saved={saved.data}
+          />
+        )}
+
+        {isBrowsing && (
         <div className={`${cardClass} p-1.5 sm:p-2`}>
           {feed.isPending ? (
             <div aria-busy="true" aria-label="در حال بارگذاری محصولات">
@@ -165,7 +180,9 @@ export function HomePage() {
           )}
         </div>
 
-        {feed.hasNextPage && (
+        )}
+
+        {isBrowsing && feed.hasNextPage && (
           <div className="mt-5 flex flex-col items-center gap-2">
             <Button variant="secondary" onClick={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage}>
               نمایش محصولات بیشتر
@@ -183,6 +200,78 @@ export function HomePage() {
         topics={(hotTopics.data ?? []).filter((topic) => topic.productCount > 0).slice(0, 8)}
         makers={(topMakers.data?.pages[0]?.items ?? []).slice(0, 5)}
       />
+    </div>
+  )
+}
+
+/** The home page's core surface: each recent day with its top products. */
+function DailyWinners({
+  groups,
+  loading,
+  error,
+  onRetry,
+  votes,
+  saved,
+}: {
+  groups: { day: string; items: (ProductSummary & { rank: number })[] }[]
+  loading: boolean
+  error: unknown
+  onRetry: () => void
+  votes: Set<string> | undefined
+  saved: Set<string> | undefined
+}) {
+  if (loading) {
+    return (
+      <div className={`${cardClass} p-1.5 sm:p-2`} aria-busy="true" aria-label="در حال بارگذاری محصولات">
+        {Array.from({ length: 6 }, (_, index) => (
+          <ProductRowSkeleton key={index} />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={cardClass}>
+        <ErrorState error={error} onRetry={onRetry} title="فهرست محصولات بارگذاری نشد" />
+      </div>
+    )
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className={cardClass}>
+        <EmptyState
+          icon={<PackageSearch size={22} strokeWidth={1.75} />}
+          title="هنوز محصولی منتشر نشده"
+          description="اگر محصولی می‌شناسی، معرفی‌اش کن تا اولی باشی."
+          action={<ButtonLink to="/submit">معرفی محصول</ButtonLink>}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-7">
+      {groups.map((group, groupIndex) => (
+        <section key={group.day} aria-labelledby={`day-${group.day}`}>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id={`day-${group.day}`} className="text-lg font-extrabold">
+              {groupIndex === 0 ? 'محصولات امروز' : `برترین‌های ${formatDay(group.day)}`}
+            </h2>
+            <p className="text-[13px] text-ink-muted">{formatDay(group.day)}</p>
+          </div>
+          <div className={`${cardClass} p-1.5 sm:p-2`}>
+            <ol aria-label={`محصولات ${formatDay(group.day)}`}>
+              {group.items.map((product) => (
+                <li key={product.id}>
+                  <ProductRow product={product} voted={votes?.has(product.id) ?? false} saved={saved?.has(product.id) ?? false} rank={product.rank} />
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

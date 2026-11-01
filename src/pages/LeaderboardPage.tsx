@@ -12,11 +12,15 @@ import { cardClass } from '@/components/ui/styles'
 const PERIODS: { value: LeaderboardPeriod; label: string; caption: string }[] = [
   { value: 'daily', label: 'امروز', caption: 'رأی‌های امروز به وقت تهران' },
   { value: 'weekly', label: 'هفته', caption: 'رأی‌های هفت روز گذشته' },
+  { value: 'monthly', label: 'ماه', caption: 'رأی‌های سی روز گذشته' },
+  { value: 'yearly', label: 'سال', caption: 'رأی‌های یک سال گذشته' },
 ]
 
 export function LeaderboardPage() {
   const [params, setParams] = useSearchParams()
-  const period: LeaderboardPeriod = params.get('period') === 'weekly' ? 'weekly' : 'daily'
+  const requested = params.get('period')
+  const period: LeaderboardPeriod =
+    requested === 'weekly' || requested === 'monthly' || requested === 'yearly' ? requested : 'daily'
   const feed = useLeaderboard(period)
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
@@ -27,8 +31,8 @@ export function LeaderboardPage() {
 
   const setPeriod = (value: LeaderboardPeriod) => {
     const next = new URLSearchParams(params)
-    if (value === 'weekly') next.set('period', value)
-    else next.delete('period')
+    if (value === 'daily') next.delete('period')
+    else next.set('period', value)
     setParams(next)
   }
 
