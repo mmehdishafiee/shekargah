@@ -1,27 +1,38 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { AtSign, Briefcase, CalendarDays, Code2, Globe, Layers, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
+import { AtSign, Briefcase, CalendarDays, Code2, Globe, Layers, MessageSquare, MessageSquareQuote, Package, Send, Settings, ShieldCheck, Trash2, UserX } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { useFollowCounts, useMakerProducts, useMySavedIds, useMyVotes, useProfileByUsername, useProfileCollections } from '@/data/queries'
-import type { Product } from '@/data/types'
+import {
+  useFollowCounts,
+  useMakerProducts,
+  useMySavedIds,
+  useMyVotes,
+  useProfileByUsername,
+  useProfileCollections,
+  useProfileComments,
+  useProfileReviews,
+} from '@/data/queries'
+import type { Product, ProfileComment, ProfileReview } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { ProductLogo } from '@/components/product/ProductLogo'
 import { ProductRow } from '@/components/product/ProductRow'
 import { StatusBadge } from '@/components/product/StatusBadge'
+import { RatingStars } from '@/components/product/RatingStars'
 import { FollowButton } from '@/components/profile/FollowButton'
 import { CollectionCard } from '@/components/collection/CollectionCard'
 import { Avatar } from '@/components/ui/Avatar'
+import { BidiText } from '@/components/ui/BidiText'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorState, PageLoader, Spinner } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
 import { cardClass } from '@/components/ui/styles'
 
-type Tab = 'all' | 'made' | 'hunted'
+type Tab = 'all' | 'made' | 'hunted' | 'comments' | 'reviews'
 
 /** Social links a member chose to publish. */
 function ProfileLinks({ profile }: { profile: { websiteUrl: string | null; xUsername: string | null; telegramUsername: string | null; linkedinUsername: string | null; githubUsername: string | null } }) {
@@ -63,6 +74,48 @@ function ProfileStat({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** A product link shared by the comment and review rows. */
+function ActivityProductLink({ product }: { product: { slug: string; name: string } }) {
+  return (
+    <Link to={productPath(product.slug)} className="text-sm font-bold hover:underline">
+      {product.name}
+    </Link>
+  )
+}
+
+function ProfileCommentRow({ comment }: { comment: ProfileComment }) {
+  if (!comment.product) return null
+  return (
+    <li className="px-4 py-3.5">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
+        <MessageSquare size={14} strokeWidth={1.75} aria-hidden />
+        <span>روی</span>
+        <ActivityProductLink product={comment.product} />
+        <span className="text-ink-faint">·</span>
+        <span>{formatDate(comment.createdAt)}</span>
+      </p>
+      <BidiText className="mt-1.5 break-words text-[15px] leading-7" text={comment.body} />
+    </li>
+  )
+}
+
+function ProfileReviewRow({ review }: { review: ProfileReview }) {
+  if (!review.product) return null
+  return (
+    <li className="px-4 py-3.5">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
+        <MessageSquareQuote size={14} strokeWidth={1.75} aria-hidden />
+        <span>نقد</span>
+        <ActivityProductLink product={review.product} />
+        <RatingStars value={review.rating} size={13} />
+        <span className="text-ink-faint">·</span>
+        <span>{formatDate(review.createdAt)}</span>
+      </p>
+      {review.body && <BidiText className="mt-1.5 break-words text-[15px] leading-7" text={review.body} />}
+    </li>
+  )
+}
+
 export function ProfilePage() {
   const { username = '' } = useParams()
   const profile = useProfileByUsername(username)
@@ -70,6 +123,8 @@ export function ProfilePage() {
   const products = useMakerProducts(profile.data?.id)
   const followCounts = useFollowCounts(profile.data?.id)
   const collections = useProfileCollections(profile.data?.id)
+  const profileComments = useProfileComments(profile.data?.id)
+  const profileReviews = useProfileReviews(profile.data?.id)
   const published = products.data?.filter((p) => p.status === 'published') ?? []
   const unpublished = products.data?.filter((p) => p.status !== 'published') ?? []
   // A member can both build products and discover other people's, so the two
@@ -99,15 +154,42 @@ export function ProfilePage() {
   const isSelf = session?.userId === user.id
 
   const HEADINGS: Record<Tab, string> = {
-    all: 'فعالیت',
-    made: 'محصولات ساخته‌شده',
+    all: 'محصولات',
+    made: 'محصولات ساختهشده',
     hunted: 'محصولات شکارشده',
+    comments: 'کامنتها',
+    reviews: 'نقدها',
   }
   const EMPTY: Record<Tab, string> = {
-    all: 'هنوز محصول منتشرشده‌ای ندارد',
+    all: 'هنوز محصول منتشرشدهای ندارد',
     made: 'هنوز محصولی نساخته است',
     hunted: 'هنوز محصولی شکار نکرده است',
+    comments: 'هنوز کامنتی ننوشته است',
+    reviews: 'هنوز نقدی ننوشته است',
   }
+  const comments = (profileComments.data ?? []).filter((comment) => comment.product)
+  const reviews = (profileReviews.data ?? []).filter((review) => review.product)
+
+  const TABS: { value: Tab; label: string; count: number }[] = [
+    { value: 'all', label: 'محصولات', count: published.length },
+    { value: 'made', label: 'ساخته', count: made.length },
+    { value: 'hunted', label: 'شکار', count: hunted.length },
+    { value: 'comments', label: 'کامنتها', count: comments.length },
+    { value: 'reviews', label: 'نقدها', count: reviews.length },
+  ]
+
+  const activityCount = published.length + comments.length + reviews.length
+  const showActivityTabs = activityCount > 0 || profileComments.isSuccess || profileReviews.isSuccess
+
+  const activityEmpty = (
+    <EmptyState
+      icon={
+        tab === 'comments' ? <MessageSquare size={22} strokeWidth={1.75} /> : tab === 'reviews' ? <MessageSquareQuote size={22} strokeWidth={1.75} /> : <Package size={22} strokeWidth={1.75} />
+      }
+      title={EMPTY[tab]}
+      action={isSelf && (tab === 'all' || tab === 'made' || tab === 'hunted') ? <ButtonLink to="/submit">معرفی محصول</ButtonLink> : undefined}
+    />
+  )
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -211,11 +293,13 @@ export function ProfilePage() {
         </section>
       )}
 
-      <section aria-labelledby="published-heading">
+      <section aria-labelledby="activity-heading">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 id="published-heading" className="text-lg font-bold">
+          <h2 id="activity-heading" className="text-lg font-bold">
             {HEADINGS[tab]}
-            {products.isSuccess && <span className="ms-1.5 font-medium text-ink-muted">({formatNumber(shown.length)})</span>}
+            <span className="ms-1.5 font-medium text-ink-muted">
+              ({formatNumber(tab === 'comments' ? comments.length : tab === 'reviews' ? reviews.length : shown.length)})
+            </span>
           </h2>
           {isSelf && (
             <ButtonLink to="/submit" size="sm" variant="secondary">
@@ -223,15 +307,9 @@ export function ProfilePage() {
             </ButtonLink>
           )}
         </div>
-        {published.length > 0 && (
-          <div role="group" aria-label="نوع محصولات" className="mt-3 flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sunken p-1 [scrollbar-width:none]">
-            {(
-              [
-                ['all', `همه ${formatNumber(published.length)}`],
-                ['made', `ساخته ${formatNumber(made.length)}`],
-                ['hunted', `شکار ${formatNumber(hunted.length)}`],
-              ] as const
-            ).map(([value, label]) => (
+        {showActivityTabs && (
+          <div role="group" aria-label="نوع فعالیت" className="mt-3 flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sunken p-1 [scrollbar-width:none]">
+            {TABS.map(({ value, label, count }) => (
               <button
                 key={value}
                 type="button"
@@ -241,24 +319,52 @@ export function ProfilePage() {
                   tab === value ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
                 }`}
               >
-                {label}
+                {label} {formatNumber(count)}
               </button>
             ))}
           </div>
         )}
-        <div className={`${cardClass} mt-4 p-1.5 sm:p-2`}>
-          {products.isPending ? (
+        <div className={`${cardClass} mt-4 ${tab === 'comments' || tab === 'reviews' ? '' : 'p-1.5 sm:p-2'}`}>
+          {tab === 'comments' ? (
+            profileComments.isPending ? (
+              <div className="flex justify-center py-10 text-ink-muted">
+                <Spinner label="در حال بارگذاری کامنتها" />
+              </div>
+            ) : profileComments.isError ? (
+              <ErrorState error={profileComments.error} onRetry={() => profileComments.refetch()} />
+            ) : comments.length === 0 ? (
+              activityEmpty
+            ) : (
+              <ul className="divide-y divide-line/70">
+                {comments.map((comment) => (
+                  <ProfileCommentRow key={comment.id} comment={comment} />
+                ))}
+              </ul>
+            )
+          ) : tab === 'reviews' ? (
+            profileReviews.isPending ? (
+              <div className="flex justify-center py-10 text-ink-muted">
+                <Spinner label="در حال بارگذاری نقدها" />
+              </div>
+            ) : profileReviews.isError ? (
+              <ErrorState error={profileReviews.error} onRetry={() => profileReviews.refetch()} />
+            ) : reviews.length === 0 ? (
+              activityEmpty
+            ) : (
+              <ul className="divide-y divide-line/70">
+                {reviews.map((review) => (
+                  <ProfileReviewRow key={review.id} review={review} />
+                ))}
+              </ul>
+            )
+          ) : products.isPending ? (
             <div className="flex justify-center py-10 text-ink-muted">
               <Spinner label="در حال بارگذاری محصولات" />
             </div>
           ) : products.isError ? (
             <ErrorState error={products.error} onRetry={() => products.refetch()} />
           ) : shown.length === 0 ? (
-            <EmptyState
-              icon={<Package size={22} strokeWidth={1.75} />}
-              title={EMPTY[tab]}
-              action={isSelf ? <ButtonLink to="/submit">معرفی محصول</ButtonLink> : undefined}
-            />
+            activityEmpty
           ) : (
             <ul>
               {shown.map((product) => (

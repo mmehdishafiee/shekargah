@@ -1132,6 +1132,38 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       if (error) throw mapPostgrestError(error)
     },
 
+    async listProfileComments(profileId) {
+      const rows = check(
+        await supabase
+          .from('comments')
+          .select('id, body, created_at, product:products(slug, name)')
+          .eq('author_id', profileId)
+          .order('created_at', { ascending: false })
+          .limit(100)
+          .returns<{ id: string; body: string; created_at: string; product: { slug: string; name: string } | null }[]>(),
+      )
+      return rows.map((row) => ({ id: row.id, body: row.body, createdAt: row.created_at, product: row.product }))
+    },
+
+    async listProfileReviews(profileId) {
+      const rows = check(
+        await supabase
+          .from('reviews')
+          .select('id, rating, body, created_at, product:products(slug, name)')
+          .eq('author_id', profileId)
+          .order('created_at', { ascending: false })
+          .limit(100)
+          .returns<{ id: string; rating: number; body: string | null; created_at: string; product: { slug: string; name: string } | null }[]>(),
+      )
+      return rows.map((row) => ({
+        id: row.id,
+        rating: Number(row.rating),
+        body: row.body,
+        createdAt: row.created_at,
+        product: row.product,
+      }))
+    },
+
     async listSponsors() {
       const rows = check(
         await supabase

@@ -11,6 +11,8 @@ import {
   type Product,
   type ProductSummary,
   type Profile,
+  type ProfileComment,
+  type ProfileReview,
   type ProfileSummary,
   type RankedProduct,
   type Report,
@@ -797,11 +799,34 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       persist()
     },
 
+    async listProfileComments(profileId) {
+      await wait()
+      return state.comments
+        .filter((comment) => comment.authorId === profileId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .flatMap((comment): ProfileComment[] => {
+          const product = state.products.find((p) => p.id === comment.productId && p.status === 'published')
+          return product ? [{ id: comment.id, body: comment.body, createdAt: comment.createdAt, product: { slug: product.slug, name: product.name } }] : []
+        })
+    },
+
+    async listProfileReviews(profileId) {
+      await wait()
+      return state.reviews
+        .filter((review) => review.authorId === profileId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .flatMap((review): ProfileReview[] => {
+          const product = state.products.find((p) => p.id === review.productId && p.status === 'published')
+          return product
+            ? [{ id: review.id, rating: review.rating, body: review.body, createdAt: review.createdAt, product: { slug: product.slug, name: product.name } }]
+            : []
+        })
+    },
+
     async listSponsors() {
       await wait()
       return state.sponsors.filter((sponsor) => sponsor.isActive).map((sponsor) => ({ ...sponsor, logoUrl: sponsor.logoUrl }))
     },
-
     async listNotifications(page) {
       await wait()
       const user = current()

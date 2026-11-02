@@ -99,8 +99,21 @@ describe('demo backend mirrors the database rules', () => {
     expect((await api.listComments(first!.id)).some((c) => c.id === comment!.id)).toBe(false)
   })
 
-  it('filters feed by tags and maps tags onto products', async () => {
-    const feed = await api.listProducts({ sort: 'newest', tags: ['open-source'], page: 0 })
+  it('lists a member’s own comments and reviews with their product', async () => {
+    const comments = await api.listProfileComments('u-sara')
+    expect(comments.length).toBeGreaterThan(0)
+    expect(comments.every((c) => c.product && c.product.slug.length > 0)).toBe(true)
+
+    const reviews = await api.listProfileReviews('u-sara')
+    expect(reviews.length).toBeGreaterThan(0)
+    expect(reviews.every((r) => r.rating >= 1 && r.rating <= 5 && r.product)).toBe(true)
+
+    // A member with no activity gets an empty timeline rather than everything.
+    expect(await api.listProfileComments('u-nobody')).toEqual([])
+    expect(await api.listProfileReviews('u-nobody')).toEqual([])
+  })
+
+  it('filters feed by tags and maps tags onto products', async () => {    const feed = await api.listProducts({ sort: 'newest', tags: ['open-source'], page: 0 })
     expect(feed.items.length).toBeGreaterThan(0)
     expect(feed.items.every((p) => p.tags.some((tag) => tag.slug === 'open-source'))).toBe(true)
 

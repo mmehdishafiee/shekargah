@@ -298,6 +298,23 @@ export interface Comment {
   author: ProfileSummary
 }
 
+/** A comment a member wrote, together with the product it sits on. */
+export interface ProfileComment {
+  id: string
+  body: string
+  createdAt: string
+  product: { slug: string; name: string } | null
+}
+
+/** A review a member wrote, together with the product it is about. */
+export interface ProfileReview {
+  id: string
+  rating: number
+  body: string | null
+  createdAt: string
+  product: { slug: string; name: string } | null
+}
+
 export interface Report {
   id: string
   reason: ReportReason
@@ -454,6 +471,10 @@ export interface ShekargahApi {
   listReviews(productId: string): Promise<Review[]>
   submitReview(input: { productId: string; rating: number; body: string }): Promise<void>
   deleteReview(productId: string): Promise<void>
+
+  /** A member's own comments and reviews, for their profile activity tabs. */
+  listProfileComments(profileId: string): Promise<ProfileComment[]>
+  listProfileReviews(profileId: string): Promise<ProfileReview[]>
 
   listSponsors(): Promise<Sponsor[]>
 

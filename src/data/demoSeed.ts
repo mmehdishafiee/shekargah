@@ -407,6 +407,14 @@ const COMMENTS: [product: string, author: string, body: string, hoursAgo: number
   ['زبانچه', 'u-mina', 'کاش امکان ساخت بسته‌ی لغت شخصی هم داشت.', 60],
 ]
 
+const REVIEWS: [product: string, author: string, rating: number, body: string, hoursAgo: number][] = [
+  ['جلالیکیت', 'u-reza', 5, 'روی دو پروژه‌ی تولیدی استفاده کردم؛ سبک، دقیق و مستنداتش روشن است.', 26],
+  ['جلالیکیت', 'u-neda', 4, 'خیلی خوب است، فقط مستندات بخش فرم‌ها می‌تواند کامل‌تر شود.', 16],
+  ['رصدگر', 'u-amir', 5, 'هشدارهایش به‌موقع می‌رسد و تنظیمات پیچیده‌ای ندارد. برای تیم کوچک عالی است.', 10],
+  ['دفترچه', 'u-mina', 4, 'نسخه‌ی وب سریع است؛ فقط جای اپ موبایل خالی است.', 44],
+  ['پارسینویس', 'u-sara', 5, 'نیم‌فاصله و غلط‌یابی‌اش از همه‌ی ابزارهایی که امتحان کرده‌ام بهتر است.', 90],
+]
+
 const CATEGORY_IDS: Record<string, string> = Object.fromEntries(
   CATEGORIES.map(([slug], index) => [slug, `c-${String(index + 1).padStart(2, '0')}`]),
 )
@@ -511,6 +519,17 @@ export function createDemoState(now: Date = new Date()): DemoState {
     return { id: `m-${index + 1}`, productId: product.id, authorId, body, createdAt: ago(hoursAgo) }
   })
 
+  const reviews: DemoReview[] = REVIEWS.map(([productName, authorId, rating, body, hoursAgo], index) => {
+    const key = productName.replace(/\u200c/g, '')
+    const product = products.find((p) => p.name.replace(/\u200c/g, '') === key)!
+    return { id: `rev-${index + 1}`, productId: product.id, authorId, rating, body, createdAt: ago(hoursAgo) }
+  })
+  for (const product of products) {
+    const rows = reviews.filter((review) => review.productId === product.id)
+    product.ratingCount = rows.length
+    product.ratingAvg = rows.length ? Math.round((rows.reduce((sum, review) => sum + review.rating, 0) / rows.length) * 100) / 100 : 0
+  }
+
   const reports: DemoReport[] = [
     {
       id: 'r-1',
@@ -563,7 +582,7 @@ export function createDemoState(now: Date = new Date()): DemoState {
     products,
     votes: [],
     comments,
-    reviews: [],
+    reviews,
     notifications: [],
     sponsors: SPONSORS.map(([name, tagline, url], index) => ({
       id: `sp-${index + 1}`,

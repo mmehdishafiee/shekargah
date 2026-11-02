@@ -158,6 +158,24 @@ export function useReviews(productId: string | undefined) {
   })
 }
 
+export function useProfileComments(profileId: string | undefined) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['profile-comments', profileId ?? ''],
+    queryFn: () => api.listProfileComments(profileId!),
+    enabled: Boolean(profileId),
+  })
+}
+
+export function useProfileReviews(profileId: string | undefined) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['profile-reviews', profileId ?? ''],
+    queryFn: () => api.listProfileReviews(profileId!),
+    enabled: Boolean(profileId),
+  })
+}
+
 export function useSponsors() {
   const api = useApi()
   return useQuery({ queryKey: ['sponsors'], queryFn: () => api.listSponsors(), staleTime: 5 * 60_000 })
