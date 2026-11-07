@@ -36,15 +36,19 @@ export function HomePage() {
   const feed = useProductFeed({ sort, category: category || undefined, search: search || undefined, tags: tag ? [tag] : undefined })
   const products = feed.data?.pages.flatMap((page) => page.items) ?? []
   const total = feed.data?.pages[0]?.total ?? 0
-  const votes = useMyVotes(products.map((p) => p.id))
-  const saved = useMySavedIds(products.map((p) => p.id))
+  // The home page shows the daily winners *and* the feed, so the vote/save
+  // state must be fetched for both sets of products.
+  const winners = useDailyWinners(7, 5)
+  const winnerIds = (winners.data ?? []).flatMap((group) => group.items.map((item) => item.id))
+  const stateIds = [...new Set([...products.map((p) => p.id), ...winnerIds])]
+  const votes = useMyVotes(stateIds)
+  const saved = useMySavedIds(stateIds)
   const sponsors = useSponsors()
   const stats = useSiteStats()
   const hotTopics = useTopics()
   const topMakers = useTopMakers()
   // The default home view is the day-by-day winners list, like a daily digest.
   const isBrowsing = Boolean(search) || Boolean(category) || Boolean(tag)
-  const winners = useDailyWinners(7, 5)
 
   const activeCategory = categories.data?.find((c) => c.slug === category)
   const heading = search

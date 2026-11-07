@@ -61,8 +61,8 @@ export function AdminSeoPage() {
     { label: 'کارت‌های اشتراک‌گذاری', detail: 'Open Graph و Twitter Card با تصویر محصول.', ok: true },
     { label: 'زبان و راست‌چین', detail: 'lang="fa" و dir="rtl" روی سند.', ok: true },
     { label: 'صفحه‌های خصوصی noindex', detail: 'محصول منتشرنشده و نتیجه‌های جست‌وجو ایندکس نمی‌شوند.', ok: true },
-    { label: 'نقشه‌ی سایت', detail: sitemap.isPending ? 'در حال بررسی…' : `${formatNumber(sitemap.data?.urls ?? 0)} آدرس در sitemap.xml`, ok: sitemap.data?.ok === true && (sitemap.data?.urls ?? 0) > 10 },
-    { label: 'robots.txt و معرفی نقشه', detail: robots.isPending ? 'در حال بررسی…' : robots.data?.ok ? 'مسیرهای خصوصی مسدود و sitemap معرفی شده است.' : 'فایل robots.txt کامل نیست.', ok: robots.data?.ok === true },
+    { label: 'نقشه‌ی سایت', detail: sitemap.isPending ? 'در حال بررسی…' : sitemap.isError ? 'بررسی ناموفق بود؛ دوباره تلاش کن.' : `${formatNumber(sitemap.data?.urls ?? 0)} آدرس در sitemap.xml`, ok: !sitemap.isError && sitemap.data?.ok === true && (sitemap.data?.urls ?? 0) > 10 },
+    { label: 'robots.txt و معرفی نقشه', detail: robots.isPending ? 'در حال بررسی…' : robots.isError ? 'بررسی ناموفق بود؛ دوباره تلاش کن.' : robots.data?.ok ? 'مسیرهای خصوصی مسدود و sitemap معرفی شده است.' : 'فایل robots.txt کامل نیست.', ok: !robots.isError && robots.data?.ok === true },
   ]
 
   const total = products + postCount + topicCount + companyCount

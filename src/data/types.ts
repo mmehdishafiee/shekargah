@@ -508,8 +508,9 @@ export interface ShekargahApi {
   setProductCompany(productId: string, companyId: string | null): Promise<void>
   listNewsletterSubscribers(page: number): Promise<Page<NewsletterSubscriber>>
 
-  listNotifications(page: number): Promise<Page<Notification>>
+  listNotifications(page: number, filter?: 'all' | 'unread'): Promise<Page<Notification>>
   unreadNotificationCount(): Promise<number>
+  markNotificationRead(id: string): Promise<void>
   markAllNotificationsRead(): Promise<void>
 
   followUser(username: string): Promise<void>

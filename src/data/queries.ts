@@ -181,12 +181,12 @@ export function useSponsors() {
   return useQuery({ queryKey: ['sponsors'], queryFn: () => api.listSponsors(), staleTime: 5 * 60_000 })
 }
 
-export function useNotifications() {
+export function useNotifications(filter: 'all' | 'unread' = 'all') {
   const api = useApi()
   const { session } = useAuth()
   return useInfiniteQuery({
-    queryKey: ['notifications', session?.userId ?? null],
-    queryFn: ({ pageParam }) => api.listNotifications(pageParam),
+    queryKey: ['notifications', session?.userId ?? null, filter],
+    queryFn: ({ pageParam }) => api.listNotifications(pageParam, filter),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => (last.hasMore ? pages.length : undefined),
     enabled: Boolean(session),

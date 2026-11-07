@@ -1184,14 +1184,15 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       }))
     },
 
-    async listNotifications(page) {
+    async listNotifications(page, filter = 'all') {
       await currentUserId()
-      const { data, error } = await supabase
+      let query = supabase
         .from('notifications')
         .select('id, kind, product_id, body, read_at, created_at, actor:profiles!notifications_actor_id_fkey(username, display_name), product:products(slug, name)')
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
-        .returns<
+      if (filter === 'unread') query = query.is('read_at', null)
+      const { data, error } = await query.returns<
           {
             id: number
             kind: Notification['kind']
@@ -1227,6 +1228,14 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         .is('read_at', null)
       if (error) return 0
       return count ?? 0
+    },
+
+    async markNotificationRead(id) {
+      const result = await supabase.rpc('mark_notification_read', { p_id: id })
+      // Until migration 20261107000025 is applied there is no such function;
+      // never surface that to the user, the inbox simply stays unread.
+      if (result.error && (result.error.code === 'PGRST202' || result.error.message?.includes('mark_notification_read'))) return
+      checkVoid(result)
     },
 
     async markAllNotificationsRead() {

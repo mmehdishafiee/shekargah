@@ -29,9 +29,20 @@ export function NotificationsPage() {
   const api = useApi()
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const feed = useNotifications()
-  const all = feed.data?.pages.flatMap((page) => page.items) ?? []
-  const items = filter === 'unread' ? all.filter((item) => !item.read) : all
+  // The unread view asks the server, so "no unread" is never a false negative
+  // caused by only part of the list being loaded.
+  const feed = useNotifications(filter)
+  const items = feed.data?.pages.flatMap((page) => page.items) ?? []
+
+  const markRead = useMutation({
+    mutationFn: (id: string) => api.markNotificationRead(id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+        queryClient.invalidateQueries({ queryKey: ['notifications-unread'] }),
+      ])
+    },
+  })
 
   const markAll = useMutation({
     mutationFn: () => api.markAllNotificationsRead(),
@@ -56,7 +67,7 @@ export function NotificationsPage() {
           variant="secondary"
           size="sm"
           loading={markAll.isPending}
-          disabled={!all.some((item) => !item.read)}
+          disabled={!items.some((item) => !item.read)}
           icon={<CheckCheck size={16} strokeWidth={1.75} />}
           onClick={() => markAll.mutate()}
         >
@@ -103,7 +114,7 @@ export function NotificationsPage() {
         ) : (
           <ul className="divide-y divide-line/70">
             {items.map((item) => (
-              <NotificationRow key={item.id} item={item} />
+              <NotificationRow key={item.id} item={item} onRead={() => !item.read && markRead.mutate(item.id)} />
             ))}
           </ul>
         )}
@@ -120,10 +131,13 @@ export function NotificationsPage() {
   )
 }
 
-function NotificationRow({ item }: { item: Notification }) {
+function NotificationRow({ item, onRead }: { item: Notification; onRead: () => void }) {
   const { icon: Icon, label } = KIND_META[item.kind]
   return (
-    <li className={`flex items-start gap-3 px-3 py-3.5 sm:px-4 ${item.read ? '' : 'bg-brand-50/40'}`}>
+    <li
+      onClick={onRead}
+      className={`flex items-start gap-3 px-3 py-3.5 sm:px-4 ${item.read ? '' : 'bg-brand-50/40'}`}
+    >
       <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-sunken text-ink-muted">
         <Icon size={17} strokeWidth={1.75} aria-hidden />
       </span>

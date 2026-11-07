@@ -827,11 +827,13 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       await wait()
       return state.sponsors.filter((sponsor) => sponsor.isActive).map((sponsor) => ({ ...sponsor, logoUrl: sponsor.logoUrl }))
     },
-    async listNotifications(page) {
+    async listNotifications(page, filter = 'all') {
       await wait()
       const user = current()
       if (!user) return { items: [], total: 0, hasMore: false }
-      const mine = state.notifications.filter((n) => n.userId === user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      const mine = state.notifications
+        .filter((n) => n.userId === user.id && (filter === 'unread' ? !n.readAt : true))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       const start = Math.max(0, page) * PAGE_SIZE
       const items = mine.slice(start, start + PAGE_SIZE).map((n) => {
         const product = n.productId ? state.products.find((p) => p.id === n.productId) : undefined
@@ -855,6 +857,16 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       const user = current()
       if (!user) return 0
       return state.notifications.filter((n) => n.userId === user.id && !n.readAt).length
+    },
+
+    async markNotificationRead(id) {
+      await wait()
+      const user = requireUser()
+      const item = state.notifications.find((n) => n.id === id && n.userId === user.id)
+      if (item && !item.readAt) {
+        item.readAt = new Date().toISOString()
+        persist()
+      }
     },
 
     async markAllNotificationsRead() {
