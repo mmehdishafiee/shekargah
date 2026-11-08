@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# wrangler / build artifacts
+.wrangler/
+dist/
+
+# env files (never commit real keys)
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# logs
+*.log
+.DS_Store
+Thumbs.db

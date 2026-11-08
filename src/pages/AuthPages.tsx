@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { Check, MailCheck } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
+import { env } from '@/lib/env'
 import { errorMessage } from '@/lib/errors'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { compact, hasErrors, validateDisplayName, validateEmail, validatePassword } from '@/lib/validation'
@@ -11,7 +12,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Field, TextInput } from '@/components/ui/Field'
 import { Notice, PageLoader } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
-import { cardClass } from '@/components/ui/styles'
+import { buttonClass, cardClass } from '@/components/ui/styles'
 
 const PERKS = [
   'هر روز محصول تازه‌ی سازندگان ایرانی را ببین',
@@ -92,8 +93,18 @@ function GitHubIcon() {
   )
 }
 
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden>
+      <path d="M22.05 3.2a1.6 1.6 0 0 0-1.63-.24L2.4 10.55c-.63.25-1.03.85-1.02 1.51.01.67.43 1.26 1.08 1.48l4.1 1.4 1.56 5.02c.1.34.35.62.69.76.34.14.73.12 1.05-.06l2.75-1.55 3.9 2.87c.55.4 1.33.36 1.83-.1.3-.28.47-.68.45-1.09l-1.6-15.1 4.2-2.05c.13-.06.24-.15.32-.26a1.6 1.6 0 0 0-.16-1.13ZM9.6 14.3l-.5 3.2-1.02-3.3 8.2-5.2-6.68 5.3Z" />
+    </svg>
+  )
+}
+
 /** Social sign-in buttons, shown above the email form on the login screen. */
 function OAuthButtons({ onPick, busy }: { onPick: (provider: 'google' | 'github') => void; busy: boolean }) {
+  const telegramUrl = env.telegramBotUsername ? `https://t.me/${env.telegramBotUsername}?start=login` : null
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -104,6 +115,27 @@ function OAuthButtons({ onPick, busy }: { onPick: (provider: 'google' | 'github'
           ورود با گیت‌هاب
         </Button>
       </div>
+
+      {telegramUrl && (
+        <>
+          <a
+            href={telegramUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={buttonClass('secondary', 'md', 'w-full')}
+          >
+            <TelegramIcon />
+            ورود با تلگرام
+          </a>
+          <p className="text-center text-[12px] leading-6 text-ink-faint">
+            بعد از تأیید در تلگرام خودکار به سایت برمی‌گردی.{' '}
+            <Link to="/login/telegram" className={linkClass}>
+              کد ورود داری؟
+            </Link>
+          </p>
+        </>
+      )}
+
       <div className="flex items-center gap-3 text-xs text-ink-faint" aria-hidden>
         <span className="h-px flex-1 bg-line" />
         یا با ایمیل

@@ -1,0 +1,44 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "shekargah-bot"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# ربات با webhook کار می‌کند؛ آدرس پیش‌نمایش نسخه‌ها خاموش است تا سطح عمومی کمتر شود.
+workers_dev = true
+preview_urls = false
+
+# ---------- دیتابیس D1 ----------
+# بعد از `npm run db:create` مقدار database_id را از خروجی دستور اینجا بگذار.
+[[d1_databases]]
+binding = "DB"
+database_name = "shekargah-bot-db"
+database_id = "390974d1-b5d2-43c1-80ca-0a833516d4a6"
+
+# ---------- متغیرهای غیرمحرمانه ----------
+# مقادیر محرمانه (BOT_TOKEN، WEBHOOK_SECRET، SUPABASE_SERVICE_KEY، AUTH_SECRET)
+# با `wrangler secret put` ست می‌شوند.
+[vars]
+BOT_USERNAME = "shekargaah_bot"
+CHANNEL_ID = "@shekargaah_ir"
+CHANNEL_URL = "https://t.me/shekargaah_ir"
+SITE_URL = "https://shekargaah.ir"
+# مبدأهای اضافی مجاز برای CORS (با کاما جدا کن). SITE_URL و دامنهٔ pages.dev
+# همیشه مجاز هستند؛ این خط فقط برای دامنههای دیگر است.
+ALLOWED_ORIGINS = ""
+# آیدی عددی ادمین‌ها را با کاما جدا کن
+ADMIN_IDS = "1265415697,7102386004"
+# پروژه‌ی Supabase (همان پروژه‌ی سایت)
+SUPABASE_URL = "https://lxtxjgffxtgqtdrudynd.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_CWu-iSc2FWzRuBZywWw8ug_VKzZMQxt"
+# اجبار عضویت در کانال پیش از استفاده از ربات
+REQUIRE_JOIN = "1"
+# هر چند دقیقه محصول تازه بررسی و در کانال پست شود (کرون)
+ANNOUNCE_INTERVAL_MINUTES = "5"
+
+# ---------- کرون: انتشار زمان‌بندی‌شده‌ها و معرفی محصولات تازه ----------
+[triggers]
+crons = ["*/5 * * * *"]
+
+# ---------- مشاهده‌پذیری ----------
+[observability]
+enabled = true

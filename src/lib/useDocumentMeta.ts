@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
+import { siteUrl } from './env'
 
 const SITE = 'شکارگاه'
 const DEFAULT_DESCRIPTION =
-  'شکارگاه جایی برای کشف استارتاپ‌ها، اپلیکیشن‌ها، پروژه‌های متن‌باز و ابزارهای تازه‌ی ایرانی است.'
+  'شکارگاه جایی برای کشف استارتاپها، اپلیکیشنها، پروژههای متنباز و ابزارهای تازهی ایرانی است.'
 
-export const SITE_URL = 'https://shekargah.mmehdi.ir'
+export const SITE_URL = siteUrl
 
 function setMeta(attribute: 'name' | 'property', key: string, content: string) {
   let element = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`)

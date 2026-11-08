@@ -119,7 +119,7 @@ The app offers two social sign-in buttons on the login page. To enable them:
 1. **Supabase Dashboard → Authentication → Providers**
 2. Enable **Google** and **GitHub**, and paste each provider's Client ID + Secret.
 3. Add these redirect URLs under **Authentication → URL Configuration → Redirect URLs**:
-   - `https://shekargah.mmehdi.ir/**`
+   - `https://shekargaah.ir/**`
    - `https://*.shekargah.pages.dev/**`
    - `http://localhost:5173/**`
    - `http://localhost:4173/**`

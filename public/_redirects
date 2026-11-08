@@ -1,4 +1,8 @@
 # Single-page app fallback for Cloudflare Pages.
 # Real files (assets, sitemap.xml, feed.xml, llms.txt, robots.txt) are served
 # normally; any other path is handed to the router.
+#
+# The legacy-domain 301 (`shekargah.mmehdi.ir` → `shekargaah.ir`) lives in
+# `functions/_middleware.ts`: Cloudflare Pages only matches paths in this file,
+# never hostnames, so a host-scoped rule here would be silently ignored.
 /*    /index.html    200

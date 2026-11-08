@@ -281,7 +281,15 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
   const supabase =
     client ??
     createClient(url, key, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        // Pinned to the key the direct project URL produced, so pointing the
+        // client at our own proxy does not sign every visitor out.
+        ...(env.supabaseSessionKey ? { storageKey: env.supabaseSessionKey } : {}),
+      },
     })
 
   const publicUrl = (bucket: string, path: string | null) => {

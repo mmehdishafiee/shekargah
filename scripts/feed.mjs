@@ -2,7 +2,9 @@
 // can follow new products and blog posts. Runs after `vite build`; when the API
 // is unreachable it still writes a valid (empty) channel.
 
-const SITE = 'https://shekargah.mmehdi.ir'
+import { siteUrl } from './site.mjs'
+
+const SITE = siteUrl()
 const TITLE = 'شکارگاه'
 const DESCRIPTION = 'محصولات، استارتاپ‌ها و ابزارهای تازه‌ی سازندگان ایرانی.'
 

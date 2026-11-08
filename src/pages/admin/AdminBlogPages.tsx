@@ -7,7 +7,7 @@ import { useAdminPost, useAdminPosts } from '@/data/queries'
 import { errorMessage } from '@/lib/errors'
 import { formatDate } from '@/lib/format'
 import { markdownToPlain, renderMarkdown } from '@/lib/markdown'
-import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { SITE_URL, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { Field, TextArea, TextInput } from '@/components/ui/Field'
@@ -260,7 +260,7 @@ function PostForm({ id, initial }: { id: string | null; initial: import('@/data/
             <h2 className="text-base font-bold">پیش‌نمایش نتیجه‌ی گوگل</h2>
             <div className="mt-3 space-y-1">
               <p className="text-[15px] font-medium text-brand-700">{values.seoTitle || values.title || 'عنوان نوشته'}</p>
-              <p className="ltr text-xs text-success-700">shekargah.mmehdi.ir/blog/{values.slug || slugify(values.title) || 'slug'}</p>
+              <p className="ltr text-xs text-success-700">{SITE_URL.replace(/^https?:\/\//, '')}/blog/{values.slug || slugify(values.title) || 'slug'}</p>
               <p className="text-[13px] leading-6 text-ink-muted">{values.seoDescription || values.excerpt || excerptFallback || 'توضیحات متا...'}</p>
             </div>
           </div>

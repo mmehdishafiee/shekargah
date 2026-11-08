@@ -1,0 +1,15 @@
+# نمونه‌ی متغیرهای محرمانه برای اجرای لوکال با `npm run dev`
+# این فایل را کپی کن به `.dev.vars` و مقادیر واقعی را بگذار.
+# (`.dev.vars` در .gitignore است و به گیت نمی‌رود)
+
+# توکن ربات از @BotFather
+BOT_TOKEN=123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+# رشته‌ی تصادفی برای اعتبارسنجی webhook تلگرام (حروف A-Za-z0-9_- )
+WEBHOOK_SECRET=change-me-to-a-random-string
+
+# کلید service_role پروژه‌ی Supabase (فقط در ورکر، هرگز در سایت)
+SUPABASE_SERVICE_KEY=
+
+# رازِ ساخت رمز حساب‌های تلگرامی؛ با تغییرش رمزها عوض می‌شود
+AUTH_SECRET=change-me-to-a-long-random-string
