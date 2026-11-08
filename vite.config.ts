@@ -94,6 +94,10 @@ export default defineConfig(({ mode }) => {
            * its own chunk means a deploy only invalidates the app chunk, so a
            * returning visitor on a slow link re-downloads ~100KB instead of the
            * whole bundle.
+           *
+           * Splitting further does not help Iranian visitors: `shekargaah.ir` is
+           * capped at ~60KB *per connection*, not per response, so no chunking
+           * scheme gets a page under the cap.
            */
           manualChunks: (id: string) => {
             if (!id.includes('node_modules')) return undefined
