@@ -98,6 +98,12 @@ export async function createUser(db: PGlite, email: string, displayName?: string
   return { kind: 'user', id }
 }
 
+/** The generated handle of a profile, which is what public RPCs match on. */
+export async function usernameOf(db: PGlite, id: string): Promise<string> {
+  const { rows } = await db.query<{ username: string }>(`select username from public.profiles where id = $1`, [id])
+  return rows[0]!.username
+}
+
 /** The documented admin bootstrap: run by the database owner in the SQL editor. */
 export async function promoteToAdmin(db: PGlite, email: string) {
   await db.query(

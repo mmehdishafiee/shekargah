@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import type { PGlite } from '@electric-sql/pglite'
-import { ANON, as, createTestDatabase, createUser, errorOf, promoteToAdmin, type Actor } from './harness.ts'
+import { ANON, as, createTestDatabase, createUser, errorOf, promoteToAdmin, usernameOf, type Actor } from './harness.ts'
 
 type Row = Record<string, unknown>
 
@@ -51,9 +51,13 @@ beforeAll(async () => {
 })
 
 describe('profiles', () => {
-  it('creates a profile for every new auth user with a safe username', async () => {
+  it('gives every new auth user a profile with a random handle', async () => {
     const { rows } = await db.query<Row>(`select username, display_name, role from public.profiles where id = $1`, [alice.id])
-    expect(rows[0]).toMatchObject({ username: 'alice', display_name: 'آلیس', role: 'user' })
+    expect(rows[0]).toMatchObject({ display_name: 'آلیس', role: 'user' })
+    // The handle is generated, never derived from the email address, so a
+    // signup does not leak the member's name.
+    expect(rows[0]!.username).toMatch(/^[a-hj-km-np-z]{8}$/)
+    expect(rows[0]!.username).not.toContain('alice')
   })
 
   it('lets users update their own public fields', async () => {
@@ -600,7 +604,8 @@ describe('topics, top makers and newsletter', () => {
     const rows = await as(db, ANON, async (tx) =>
       (await tx.query<Row>(`select username, product_count, votes_total, rank from public.list_top_makers(50, 0)`)).rows,
     )
-    const own = rows.find((row) => String(row.username).startsWith('makerrank'))
+    const makerHandle = await usernameOf(db, maker.id)
+    const own = rows.find((row) => row.username === makerHandle)
     expect(own).toBeTruthy()
     expect(Number(own!.votes_total)).toBeGreaterThanOrEqual(2)
     expect(Number(own!.product_count)).toBe(2)
@@ -790,6 +795,7 @@ describe('companies and newsletter export', () => {
   it('lets admins create a company, link products and read it publicly', async () => {
     const owner = await createUser(db, 'company-owner@shekargah.test')
     const product = await publish('محصول شرکتی', owner)
+    const ownerHandle = await usernameOf(db, owner.id)
 
     expect(await errorOf(as(db, alice, (tx) =>
       tx.query(`select public.admin_save_company(null, 'acme', 'شرکت آزمون', null, null, null, true, null)`),
@@ -798,7 +804,7 @@ describe('companies and newsletter export', () => {
     const id = await as(db, admin, async (tx) =>
       (await tx.query<Row>(
         `select public.admin_save_company(null, 'acme', 'شرکت آزمون', 'توضیح', null, null, true, $1) as id`,
-        [['companyowner']],
+        [[ownerHandle]],
       )).rows[0]!.id as string,
     )
     expect(id).toBeTruthy()
@@ -859,9 +865,10 @@ describe('hunter vs maker credit', () => {
     const makerAcc = await createUser(db, 'real-maker@shekargah.test', 'سازنده واقعی')
     const hunter = await createUser(db, 'hunter-two@shekargah.test')
     const product = await submit(hunter, 'شکار دوم')
+    const makerHandle = await usernameOf(db, makerAcc.id)
 
     await as(db, hunter, (tx) =>
-      tx.query(`select public.set_product_credit($1, 'hunter', $2, null)`, [product.id, 'realmaker']),
+      tx.query(`select public.set_product_credit($1, 'hunter', $2, null)`, [product.id, makerHandle]),
     )
     const { rows } = await db.query<Row>(`select maker_credit_id from public.products where id = $1`, [product.id])
     expect(rows[0]!.maker_credit_id).toBe(makerAcc.id)
@@ -890,7 +897,8 @@ describe('hunter vs maker credit', () => {
     const rows = await as(db, ANON, async (tx) =>
       (await tx.query<Row>(`select username, hunt_count, votes_total from public.list_top_hunters(50, 0)`)).rows,
     )
-    const own = rows.find((row) => String(row.username).startsWith('hunterrank'))
+    const hunterHandle = await usernameOf(db, hunter.id)
+    const own = rows.find((row) => row.username === hunterHandle)
     expect(own).toBeTruthy()
     expect(Number(own!.hunt_count)).toBe(1)
     expect(Number(own!.votes_total)).toBeGreaterThanOrEqual(1)

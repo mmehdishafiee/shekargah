@@ -92,7 +92,10 @@ function Footer() {
           <p>© شکارگاه — متن‌باز و غیرتجاری؛ هزینه‌های توسعه و نگهداری از راه حمایت مالی تأمین می‌شود.</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link to="/about" className="hover:text-ink">
-              درباره‌ی ما
+              دربارهی ما
+            </Link>
+            <Link to="/privacy" className="hover:text-ink">
+              حریم خصوصی
             </Link>
             <Link to="/blog" className="hover:text-ink">
               وبلاگ

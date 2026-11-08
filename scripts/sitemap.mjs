@@ -8,7 +8,7 @@ import { siteUrl } from './site.mjs'
 
 const SITE = siteUrl()
 
-const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor', '/changelog']
+const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor', '/privacy', '/changelog']
 
 function escapeXml(value) {
   return value.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char])

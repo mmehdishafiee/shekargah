@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { AboutPage } from '@/pages/AboutPage'
 import { ChangelogPage } from '@/pages/ChangelogPage'
 import { ContactPage, FaqPage, HelpPage, SponsorPage } from '@/pages/InfoPages'
+import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ForgotPasswordPage, LoginPage, ResetPasswordPage, SignupPage } from '@/pages/AuthPages'
 import { TelegramLoginPage } from '@/pages/TelegramLoginPage'
 import { DailyPage } from '@/pages/DailyPage'
@@ -75,6 +76,7 @@ export const routes: RouteObject[] = [
       { path: 'faq', element: <FaqPage /> },
       { path: 'contact', element: <ContactPage /> },
       { path: 'sponsor', element: <SponsorPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'login/telegram', element: <TelegramLoginPage /> },
       { path: 'signup', element: <SignupPage /> },

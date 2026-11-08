@@ -7,7 +7,7 @@ import { ButtonLink } from '@/components/ui/Button'
 import { ContactForm } from '@/components/contact/ContactForm'
 import { cardClass } from '@/components/ui/styles'
 
-const CONTACT_EMAIL = 'mmhdishafiee@gmail.com'
+export const CONTACT_EMAIL = 'mmhdishafiee@gmail.com'
 const linkClass = 'font-semibold text-brand-700 underline-offset-4 hover:underline'
 
 function PageShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
