@@ -22,7 +22,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { siteUrl as currentSiteUrl, writeConfig } from './site.mjs'
+import { addLegacyHost, siteUrl as currentSiteUrl, writeConfig } from './site.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 
@@ -152,17 +152,14 @@ step('به‌روزرسانی Worker ربات تلگرام')
   ok(`${file} → SITE_URL = "${newSiteUrl}"`)
 }
 
-step('به‌روزرسانی ریدایرکت ۳۰۱ دامنهٔ قدیمی')
+step('ثبت ۳۰۱ دامنهٔ قدیمی')
 {
-  // Page Functions enforce the canonical host: Cloudflare Pages never matches a
-  // hostname in `_redirects` (only paths), so the 301 has to live in a Function.
-  const file = 'functions/_middleware.ts'
-  const text = read(file)
-  const next = text
-    .replace(/const CANONICAL_HOST = '[^']*'/, `const CANONICAL_HOST = '${domain}'`)
-    .replace(/const LEGACY_HOSTS = new Set\(\[[^\]]*\]\)/, `const LEGACY_HOSTS = new Set(['${oldDomain}', 'www.${oldDomain}'])`)
-  write(file, next)
-  ok(`${file} → ${oldDomain} ⇒ ${domain} (301)`)
+  // Cloudflare Pages never matches a hostname in `_redirects` (only paths), so
+  // the 301 lives in a Pages Function. Both sides of it are read from
+  // `site.config.json`, so this is a config edit — no source file is rewritten.
+  addLegacyHost(oldDomain)
+  const hosts = addLegacyHost(`www.${oldDomain}`)
+  ok(`site.config.json → legacyHosts = ${JSON.stringify(hosts)}`)
   warn('دامنهٔ قدیمی باید به همین پروژهٔ Pages وصل بماند، وگرنه این ۳۰۱ اجرا نمی‌شود.')
 }
 

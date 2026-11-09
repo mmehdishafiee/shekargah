@@ -245,7 +245,7 @@ export function testEnv(db: D1DatabaseLike) {
     BOT_USERNAME: "ShekargahBot",
     CHANNEL_ID: "@shekargah",
     CHANNEL_URL: "https://t.me/shekargah",
-    SITE_URL: "https://shekargah.mmehdi.ir",
+    SITE_URL: "https://shekargaah.ir",
     ADMIN_IDS: "555",
     REQUIRE_JOIN: "0",
     SUPABASE_URL: "https://example.supabase.co",

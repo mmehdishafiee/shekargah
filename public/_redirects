@@ -2,7 +2,7 @@
 # Real files (assets, sitemap.xml, feed.xml, llms.txt, robots.txt) are served
 # normally; any other path is handed to the router.
 #
-# The legacy-domain 301 (`shekargah.mmehdi.ir` → `shekargaah.ir`) lives in
-# `functions/_middleware.ts`: Cloudflare Pages only matches paths in this file,
-# never hostnames, so a host-scoped rule here would be silently ignored.
+# Host-level rules cannot live here: Cloudflare Pages matches only paths in this
+# file, never hostnames. Any legacy-domain 301 is handled by
+# `functions/_middleware.ts`, driven by `legacyHosts` in `site.config.json`.
 /*    /index.html    200

@@ -1,20 +1,35 @@
 /**
- * Permanent redirect from the legacy domain to the canonical one.
+ * Canonical-host enforcement.
  *
- * `_redirects` cannot do this: Cloudflare Pages only matches the *path* in a
- * rule's source, never the hostname, so a host-scoped 301 there is silently
- * ignored. A Pages Function runs for every request on every custom domain of
- * the project, which makes it the right place to enforce the canonical host.
+ * `_redirects` can only match a *path*, never a hostname, so a host-scoped 301
+ * has to live in a Pages Function — this one runs for every request on every
+ * custom domain attached to the project.
  *
- * To change the domain later, update `CANONICAL_HOST` (and `LEGACY_HOSTS`).
+ * Both the canonical host and the hosts that redirect to it come from
+ * `site.config.json`, the project's single source of truth for the domain. That
+ * keeps adding, removing or restoring a domain a configuration change rather
+ * than a source change:
+ *
+ *   - to **serve** the site on another host, attach it to the Pages project and
+ *     leave `legacyHosts` alone;
+ *   - to **301** a host to the canonical one, add it to `legacyHosts`.
+ *
+ * `npm run domain -- <new-domain>` maintains both entries for you.
  */
-const CANONICAL_HOST = 'shekargaah.ir'
+import siteConfig from '../site.config.json'
 
-// NOTE: while the canonical domain has no DNS record yet, redirecting would take
-// the live site down (the legacy domain is still the only one that resolves).
-// Restore the line below the moment `shekargaah.ir` resolves:
-//   new Set(['shekargah.mmehdi.ir', 'www.shekargah.mmehdi.ir'])
-const LEGACY_HOSTS = new Set<string>([])
+/** Turns `example.com`, `www.example.com/` or a full URL into a bare hostname. */
+function hostnameOf(raw: string): string {
+  const value = raw.trim()
+  if (!value) return ''
+  return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`).hostname.toLowerCase()
+}
+
+const CANONICAL_HOST = hostnameOf(siteConfig.siteUrl)
+
+const LEGACY_HOSTS = new Set(
+  ((siteConfig as { legacyHosts?: string[] }).legacyHosts ?? []).map(hostnameOf).filter(Boolean),
+)
 
 interface MiddlewareContext {
   request: Request

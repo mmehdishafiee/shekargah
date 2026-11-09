@@ -56,9 +56,9 @@ test("loadConfig توکن جای‌نگهدار را رد می‌کند", () => 
 test("loadConfig آدرس سایت را نرمال و اسلش انتهایی را حذف می‌کند", () => {
   const config = loadConfig({
     ...testEnv(createTestDb()),
-    SITE_URL: "shekargah.mmehdi.ir/",
+    SITE_URL: "shekargaah.ir/",
   });
-  assert.equal(config.siteUrl, "https://shekargah.mmehdi.ir");
+  assert.equal(config.siteUrl, "https://shekargaah.ir");
   assert.equal(config.channelHandle, "@shekargah");
 });
 
@@ -368,7 +368,7 @@ test("تبدیل کد ورود توکن نشست برمی‌گرداند", async
   const response = await worker.fetch(
     new Request("https://bot.example.com/auth/exchange", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "https://shekargah.mmehdi.ir" },
+      headers: { "content-type": "application/json", origin: "https://shekargaah.ir" },
       body: JSON.stringify({ code: "code-1" }),
     }),
     env as never,
@@ -378,7 +378,7 @@ test("تبدیل کد ورود توکن نشست برمی‌گرداند", async
   assert.equal(response.status, 200);
   const payload = (await response.json()) as { access_token?: string };
   assert.ok(payload.access_token);
-  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://shekargah.mmehdi.ir");
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://shekargaah.ir");
 
   // کد یک‌بارمصرف بوده
   const again = await worker.fetch(
