@@ -49,3 +49,4 @@ console.log(`[llms] ${llms.pages} pages indexed`)
 
 const changelog = await generateChangelog({ outDir: 'dist' })
 console.log(`[changelog] ${changelog.commits} commits`)
+

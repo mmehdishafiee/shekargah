@@ -1,5 +1,10 @@
 # Cloudflare Pages response headers.
-# If you later move Supabase to a custom domain, add it to img-src/connect-src.
+#
+# If the build is ever configured with `assetShards` (see vite.config.ts), those
+# origins must also be listed on script-src/style-src/font-src/connect-src — the
+# shards are alternate ports of this same hostname, so `https://shekargaah.ir:*`
+# covers them. If you later move Supabase to a custom domain, add it to
+# img-src/connect-src.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
