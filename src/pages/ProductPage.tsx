@@ -87,10 +87,13 @@ function ProductDetails({ product }: { product: Product }) {
   const [reporting, setReporting] = useState(false)
   const isPublished = product.status === 'published'
   const isMaker = session?.userId === product.maker.id
+  // Locally served fallback icons are root-relative; social/schema consumers
+  // need absolute URLs.
+  const logoImage = product.logoUrl?.startsWith('/') ? `${SITE_URL}${product.logoUrl}` : product.logoUrl
   useDocumentMeta(product.name, product.tagline, {
     path: `/products/${encodeURIComponent(product.slug)}`,
     type: 'product',
-    image: product.logoUrl,
+    image: logoImage,
     robots: isPublished ? undefined : 'noindex',
     schema: isPublished
       ? productSchema({
@@ -100,7 +103,7 @@ function ProductDetails({ product }: { product: Product }) {
           category: product.category?.name ?? null,
           ratingAverage: product.ratingAvg,
           ratingCount: product.ratingCount,
-          logo: product.logoUrl,
+          logo: logoImage,
         })
       : undefined,
   })

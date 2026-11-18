@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF2A3B" />
+      <stop offset="100%" stop-color="#99000D" />
+    </linearGradient>
+    <linearGradient id="favGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF6B00" />
+      <stop offset="100%" stop-color="#FF2A3B" />
+    </linearGradient>
+  </defs>
+  <!-- Background Badge -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#favBg)" />
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
+  
+  <!-- Speed lines -->
+  <path d="M12 40 L22 40" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M15 45 L25 45" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Aerodynamic Sports Car Front Silhouette / Turbo Curve -->
+  <path d="M14 36 C16 30, 22 24, 28 22 C34 20, 44 20, 50 25 C54 28, 56 32, 54 36 C52 38, 48 39, 44 39 L22 39 C17 39, 14 38, 14 36 Z" fill="#FFFFFF" />
+  
+  <!-- Cabin Windshield -->
+  <path d="M26 24 C30 22, 38 22, 42 25 L45 29 L24 29 Z" fill="#08090C" opacity="0.85" />
+  
+  <!-- Racing Headlight / Pulse Dot -->
+  <circle cx="48" cy="33" r="2.5" fill="#00F0FF" />
+  <path d="M49 33 L55 33" stroke="#00F0FF" stroke-width="1.5" stroke-linecap="round" opacity="0.8" />
+  
+  <!-- Wheel Arches -->
+  <circle cx="23" cy="38" r="4.5" fill="#08090C" />
+  <circle cx="23" cy="38" r="2" fill="#FF2A3B" />
+  <circle cx="45" cy="38" r="4.5" fill="#08090C" />
+  <circle cx="45" cy="38" r="2" fill="#FF2A3B" />
+</svg>

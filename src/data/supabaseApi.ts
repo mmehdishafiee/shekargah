@@ -4,6 +4,7 @@ import { env } from '@/lib/env'
 import { toWebpFile } from '@/lib/image'
 import { normalizeFa } from '@/lib/text'
 import { parseStored } from './storage'
+import { localLogo } from './localLogos'
 import {
   PAGE_SIZE,
   type AdminPostRow,
@@ -195,7 +196,7 @@ const toRanked = (row: RankedRow, publicUrl: (bucket: string, path: string | nul
   slug: row.slug,
   name: row.name,
   tagline: row.tagline,
-  logoUrl: publicUrl('product-logos', row.logo_path),
+  logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
   votesCount: row.votes_count,
   commentsCount: row.comments_count,
   viewsCount: row.views_count,
@@ -418,7 +419,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       slug: row.slug,
       name: row.name,
       tagline: row.tagline,
-      logoUrl: publicUrl('product-logos', row.logo_path),
+      logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
       votesCount: row.votes_count,
       commentsCount: row.comments_count,
       viewsCount: row.views_count,
@@ -462,7 +463,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     slug: row.slug,
     name: row.name,
     tagline: row.tagline,
-    logoUrl: publicUrl('product-logos', row.logo_path),
+    logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
     votesCount: row.votes_count,
     commentsCount: row.comments_count,
     viewsCount: row.views_count,
@@ -760,7 +761,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
         slug: row.slug,
         name: row.name,
         tagline: row.tagline,
-        logoUrl: publicUrl('product-logos', row.logo_path),
+        logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
         votesCount: row.votes_count,
         commentsCount: row.comments_count,
         viewsCount: row.views_count,
@@ -969,7 +970,7 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
           slug: row.slug,
           name: row.name,
           tagline: row.tagline,
-          logoUrl: publicUrl('product-logos', row.logo_path),
+          logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
           votesCount: row.votes_count,
           commentsCount: row.comments_count,
           viewsCount: row.views_count,
