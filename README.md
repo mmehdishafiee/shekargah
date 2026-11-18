@@ -4,7 +4,7 @@
 
 **شکارگاه** یک پلتفرم متن‌باز و فارسی‌زبان برای کشف و معرفی محصولات تازه است. سازندگان، محصول خود را معرفی می‌کنند؛ مدیران بررسی می‌کنند؛ و جامعه به بهترین‌ها رأی می‌دهد.
 
-🔗 **سایت زنده:** [shekargah.pages.dev](https://shekargah.pages.dev)
+🔗 **سایت زنده:** [shekargaah.ir](https://shekargaah.ir) · 📜 [تغییرات](https://shekargaah.ir/changelog) · 🧭 [مجوز و مبدأ](https://shekargaah.ir/about)
 
 ## امکانات
 
