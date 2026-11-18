@@ -1,0 +1,81 @@
+# Apache / LiteSpeed configuration for the static host deployment.
+#
+# Cloudflare Pages reads `_headers` and `_redirects`; Apache ignores both, so the
+# same behaviour has to be expressed here: single-page-app fallback, long cache
+# for hashed assets, revalidation for HTML, and the site's security headers.
+# `_headers` stays in the repo because the Cloudflare deployment still uses it.
+
+Options -Indexes
+DirectoryIndex index.html
+
+# ---------------------------------------------------------------- SPA fallback
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Real files and directories win; everything else is handed to the router.
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# ------------------------------------------------------------------- compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE application/xml image/svg+xml
+</IfModule>
+
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml
+  AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
+  AddOutputFilterByType BROTLI_COMPRESS application/xml image/svg+xml
+</IfModule>
+
+# ----------------------------------------------------------------------- caching
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # Vite writes a content hash into every asset name, so they never change.
+  <FilesMatch "^.*-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2|png|jpg|jpeg|webp|svg|ico|avif)$">
+    ExpiresDefault "access plus 1 year"
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # The shell must be revalidated or a deploy would never be picked up. Arvan
+  # caches it for a short while on top (see the CDN cache rules).
+  <FilesMatch "\.html$">
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+
+  # Generated at build time; a few minutes of staleness is fine.
+  <FilesMatch "^(sitemap\.xml|feed\.xml|llms\.txt|robots\.txt|changelog\.json)$">
+    ExpiresDefault "access plus 5 minutes"
+    Header set Cache-Control "public, max-age=300"
+  </FilesMatch>
+</IfModule>
+
+# ----------------------------------------------------------------------- security
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
+  # `connect-src` reaches Supabase and the Telegram worker directly: on shared
+  # hosting there is no same-origin `/api` proxy, so the browser talks to both
+  # from here. Re-add `'self'` only entries if a proxy is introduced later.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://shekargah-bot.lumg.workers.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+  # Hashed asset names make the old ones useless, so compress the response too.
+  <FilesMatch "\.(js|css|html|svg|json|xml|txt)$">
+    Header append Vary Accept-Encoding
+  </FilesMatch>
+</IfModule>
+
+# --------------------------------------------------------- no directory listing
+<IfModule mod_autoindex.c>
+  IndexIgnore *
+</IfModule>

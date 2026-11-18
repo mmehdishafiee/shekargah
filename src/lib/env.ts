@@ -27,12 +27,20 @@ const telegramBotUrl = (import.meta.env.VITE_TELEGRAM_BOT_URL ?? '').trim().repl
  * (`functions/api/`) مرورگر فقط با همان اتصال گرمی حرف میزند که صفحه را آورده،
  * و لبهی کلادفلر خودش از طریق شبکهی خودش با سرور بالادست حرف میزند.
  *
- * با `VITE_SUPABASE_PROXY=off` میشود این رفتار را خاموش کرد.
+ * پروکسی فقط روی Cloudflare Pages وجود دارد (`functions/api/`). روی هاست
+ * اشتراکی چنین چیزی نیست، پس `supabaseProxy` در `site.config.json` خاموش
+ * میشود و مرورگر مستقیم با Supabase حرف میزند.
+ *
+ * مقدار از `site.config.json` میآید (پایینتر ببین) و توسط Vite بهصورت یک
+ * ثابت بیلد تزریق میشود؛ به `import.meta.env` تکیه نمیکند چون آن مسیر یک بار
+ * متغیر را نادیده گرفت و بیصدا پروکسی را روشن نگه داشت.
  */
+declare const __SHEKARGAH_SUPABASE_PROXY__: boolean
+const supabaseProxyEnabled = typeof __SHEKARGAH_SUPABASE_PROXY__ === 'boolean' ? __SHEKARGAH_SUPABASE_PROXY__ : false
+
 function sameOrigin(path: string, direct: string): string {
   const proxyPath = (import.meta.env.VITE_SUPABASE_PROXY_PATH ?? path).trim()
-  const enabled =
-    import.meta.env.PROD && import.meta.env.VITE_SUPABASE_PROXY !== 'off' && typeof window !== 'undefined'
+  const enabled = supabaseProxyEnabled && typeof window !== 'undefined'
   return enabled ? new URL(proxyPath, window.location.origin).href : direct
 }
 

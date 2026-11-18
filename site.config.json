@@ -1,5 +1,6 @@
 {
   "siteUrl": "https://shekargaah.ir",
   "legacyHosts": [],
-  "assetShards": []
+  "assetShards": [],
+  "supabaseProxy": false
 }

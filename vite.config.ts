@@ -182,7 +182,27 @@ export default defineConfig(({ mode }) => {
   if (supabaseDirect) proxy['/api/supabase'] = route('/api/supabase', supabaseDirect)
   if (botDirect) proxy['/api/bot'] = route('/api/bot', botDirect)
 
+  /**
+   * Whether the browser should reach Supabase through the same-origin Pages
+   * Function (`functions/api/supabase`) or talk to it directly.
+   *
+   * It lives in `site.config.json` and is injected as a build constant rather
+   * than read from `import.meta.env`: the env-var route silently kept the proxy
+   * on despite `VITE_SUPABASE_PROXY=off`, and a flag that quietly does nothing is
+   * worse than no flag. The proxy only exists on Cloudflare Pages, so shared
+   * hosting builds with this off and calls Supabase directly.
+   */
+  const siteConfig = JSON.parse(readFileSync(new URL('./site.config.json', import.meta.url), 'utf8')) as {
+    supabaseProxy?: boolean
+  }
+  const supabaseProxy = env.VITE_SUPABASE_PROXY
+    ? env.VITE_SUPABASE_PROXY.trim().toLowerCase() !== 'off'
+    : siteConfig.supabaseProxy !== false
+
   return {
+    define: {
+      __SHEKARGAH_SUPABASE_PROXY__: JSON.stringify(supabaseProxy),
+    },
     plugins: [react(), tailwindcss(), siteUrlHtml(), preloadPersianFont(), assetShards()],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
