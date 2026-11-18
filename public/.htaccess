@@ -13,6 +13,13 @@ DirectoryIndex index.html
   RewriteEngine On
   RewriteBase /
 
+  # The host answers plain HTTP with 200, which would leave a second live copy of
+  # every page. The `X-Forwarded-Proto` check keeps this correct if the site is
+  # ever put behind a CDN that terminates TLS in front of the host.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
   # Real files and directories win; everything else is handed to the router.
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
