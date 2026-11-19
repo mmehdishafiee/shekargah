@@ -4,19 +4,23 @@ import type { ProductSummary } from '@/data/types'
 import { formatNumber } from '@/lib/format'
 import { productPath } from '@/lib/paths'
 import { ProductLogo } from './ProductLogo'
+import { RatingStars } from './RatingStars'
+import { SaveButton } from './SaveButton'
 import { TagChips } from './TagChips'
+import { VerifiedBadge } from './VerifiedBadge'
 import { ViewCount } from './ViewCount'
 import { VoteButton } from './VoteButton'
 
 interface ProductRowProps {
   product: ProductSummary
   voted: boolean
+  saved?: boolean
   rank?: number
 }
 
-export function ProductRow({ product, voted, rank }: ProductRowProps) {
+export function ProductRow({ product, voted, saved = false, rank }: ProductRowProps) {
   return (
-    <article className="group relative flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-sunken/70 sm:px-4">
+    <article className="group relative flex items-center gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-sunken/70 sm:gap-4 sm:px-4 sm:py-3.5">
       <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} />
       <div className="min-w-0 flex-1">
         <h3 className="flex items-baseline gap-1.5 text-[15px] font-bold leading-snug">
@@ -30,9 +34,17 @@ export function ProductRow({ product, voted, rank }: ProductRowProps) {
             className="truncate after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none group-has-[a:focus-visible]:ring-2"
           >
             {product.name}
+            {product.verified && <VerifiedBadge size={13} />}
           </Link>
         </h3>
-        <p className="mt-0.5 line-clamp-2 text-sm text-ink-muted">{product.tagline}</p>
+        <p className="bidi mt-0.5 line-clamp-2 text-sm text-ink-muted">{product.tagline}</p>
+        {product.ratingCount > 0 && (
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-muted">
+            <RatingStars value={product.ratingAvg} size={13} />
+            <span className="tabular-nums">{formatNumber(product.ratingAvg)}</span>
+            <span className="tabular-nums">({formatNumber(product.ratingCount)})</span>
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-muted">
           {product.category && (
             <Link
@@ -52,13 +64,16 @@ export function ProductRow({ product, voted, rank }: ProductRowProps) {
           <ViewCount count={product.viewsCount} />
         </div>
       </div>
-      <VoteButton
-        productId={product.id}
-        productName={product.name}
-        slug={product.slug}
-        votesCount={product.votesCount}
-        voted={voted}
-      />
+      <div className="flex shrink-0 flex-col items-center gap-2">
+        <SaveButton productId={product.id} productName={product.name} saved={saved} />
+        <VoteButton
+          productId={product.id}
+          productName={product.name}
+          slug={product.slug}
+          votesCount={product.votesCount}
+          voted={voted}
+        />
+      </div>
     </article>
   )
 }

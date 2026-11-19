@@ -1,24 +1,22 @@
 /**
- * Shekargah mark: an abstract «ش» — three dots over the teeth of «س» —
- * on a rounded square in hunter orange.
+ * Shekargah mark: the «شکارگاه» crest — a symmetrical crown-and-arrow emblem — drawn as a white
+ * glyph on the hunter-orange tile.
+ *
+ * Both the tile colour (`--color-logo-tile`) and the path below are traced from the
+ * master artwork; `public/favicon.svg`, the PNG icon set and the social card are
+ * generated from the same shape. See docs/BRAND.md before changing either.
  */
+const CREST_PATH = [
+  'M20.01 4.7L20.01 5.1L19.93 5.36L19.78 5.64L19.34 6.1L18.7 6.56L18.4 6.86L18.14 7.27L18.04 7.63L18.04 7.94L18.22 8.45L18.76 9.21L19.5 10.08L19.6 9.54L19.9 8.98L20.44 8.42L21.08 7.94L21.44 7.58L21.59 7.32L21.67 7.04L21.59 6.58L21.33 6.15L20.77 5.46Z',
+  'M11.99 4.7L11.1 5.61L10.64 6.2L10.39 6.69L10.36 7.12L10.51 7.5L10.72 7.76L11.61 8.47L12.12 9.01L12.4 9.52L12.48 9.77L12.48 9.98L12.53 10.05L13.35 9.08L13.75 8.5L13.96 7.96L13.96 7.58L13.88 7.32L13.63 6.89L13.3 6.56L12.66 6.1L12.27 5.72L12.04 5.31L11.99 5.1Z',
+  'M16.03 2.17L13.45 5.03L13.52 5.15L15.87 7.76L14.49 9.72L13.5 11.05L13.81 11.56L14.04 12.04L14.32 12.86L14.49 13.73L14.62 15.26L14.57 17.15L14.32 19.47L13.98 21.28L13.55 22.94L7.96 17.4L9.03 17L9.75 16.64L10.54 16.13L11.33 15.44L11.71 15L12.15 14.37L12.45 13.73L12.58 13.35L12.68 12.86L12.71 12.25L12.58 11.51L12.38 10.95L12.12 10.46L11.71 9.9L11.28 9.44L10.33 8.68L9.65 8.24L9.8 8.75L9.88 9.24L9.88 9.95L9.8 10.44L9.65 10.92L9.31 11.61L8.73 12.43L8.01 13.14L6.99 13.88L6.02 14.37L6.02 20.03L16.03 29.86L22.05 23.94L25.93 20.03L25.93 14.37L24.88 13.81L24.01 13.17L23.27 12.43L22.69 11.61L22.33 10.87L22.2 10.44L22.12 9.98L22.15 9.01L22.25 8.52L22.35 8.27L22.33 8.24L21.49 8.8L20.8 9.37L20.26 9.93L19.88 10.46L19.62 10.95L19.37 11.71L19.29 12.25L19.34 13.01L19.52 13.65L19.83 14.32L20.21 14.9L20.8 15.57L21.56 16.2L22.2 16.61L23.07 17.05L24.04 17.4L18.42 22.94L18.37 22.89L17.96 21.23L17.61 19.19L17.38 16.79L17.35 15.31L17.45 13.91L17.68 12.78L18.02 11.89L18.5 11.05L16.48 8.27L16.15 7.76L18.58 5.03Z',
+].join('')
+
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="shrink-0">
-      <rect width="32" height="32" rx="9" fill="var(--color-brand-600)" />
-      <g fill="#fff">
-        <circle cx="16" cy="7.6" r="1.9" />
-        <circle cx="12.6" cy="11.6" r="1.9" />
-        <circle cx="19.4" cy="11.6" r="1.9" />
-      </g>
-      <path
-        d="M8 16.4v2.6a4 4 0 0 0 8 0v-2.6m0 2.6a4 4 0 0 0 8 0v-2.6"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <rect width="32" height="32" rx="9" fill="var(--color-logo-tile)" />
+      <path d={CREST_PATH} fill="#fff" />
     </svg>
   )
 }

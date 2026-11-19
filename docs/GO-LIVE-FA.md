@@ -9,10 +9,10 @@
 | ریپوی گیتهاب | `https://github.com/mmehdishafiee/shekargah` |
 | ایمیل مدیر | `mmhdishafiee@gmail.com` |
 | Project URL سوپابیس | `https://lxtxjgffxtgqtdrudynd.supabase.co` |
-| نشانی سایت (دامنهٔ اصلی) | `https://shekargah.mmehdi.ir` |
+| نشانی سایت (دامنهٔ اصلی) | `https://shekargaah.ir` |
 | نشانی جایگزین (Cloudflare Pages) | `https://shekargah.pages.dev` |
 
-> **نکتهٔ تحریم/فیلتر:** `pages.dev` و `supabase.co` در ایران تحریم‌اند. برای دسترسی مستقیم، سایت روی دامنهٔ خودت `shekargah.mmehdi.ir` قرار گرفت. در تنظیمات Auth، Site URL را همان دامنه بگذار. |
+> **نکتهٔ تحریم/فیلتر:** `pages.dev` و `supabase.co` در ایران تحریم‌اند. برای دسترسی مستقیم، سایت روی دامنهٔ خودت `shekargaah.ir` قرار گرفت. در تنظیمات Auth، Site URL را همان دامنه بگذار. |
 
 ## آنچه لازم داری
 
@@ -88,7 +88,7 @@
 
 ## ۷. بررسی نهایی
 
-- [ ] سایت بدون بنر «حالت نمایشی» باز میشود.
+- [ ] سایت روی دادهٔ واقعی Supabase باز می‌شود و بدون envهای کامل fail-closed است (هیچ بنر یا دادهٔ نمونه‌ای نمایش داده نمی‌شود).
 - [ ] صفحهای مثل `/about` را رفرش میکنی و خطای ۴۰۴ نمیدهد.
 - [ ] ثبتنام و ورود کار میکند.
 - [ ] یک محصول ثبت میکنی و در پنل مدیریت تأیید میشود.
@@ -103,13 +103,13 @@
 
 ### دربارهٔ دامنهٔ `mmehdi.ir`
 
-سایت روی `shekargah.mmehdi.ir` (ساب‌دامین دامنهٔ خودت) کار می‌کند چون `pages.dev` و `supabase.co` در ایران تحریم/فیلترند. برای راه‌اندازی آن:
+سایت روی `shekargaah.ir` (ساب‌دامین دامنهٔ خودت) کار می‌کند چون `pages.dev` و `supabase.co` در ایران تحریم/فیلترند. برای راه‌اندازی آن:
 
 1. در Cloudflare به **DNS** برو و رکورد `CNAME` برای `shekargah` به `shekargah.pages.dev` بساز (proxied = فعال).
-2. در تنظیمات پروژه Pages → **Custom domains** → **Set up a custom domain** → `shekargah.mmehdi.ir` را بزن.
+2. در تنظیمات پروژه Pages → **Custom domains** → **Set up a custom domain** → `shekargaah.ir` را بزن.
 3. در Supabase → **Authentication → URL Configuration**:
-   - Site URL: `https://shekargah.mmehdi.ir`
-   - Redirect URLs: `https://shekargah.mmehdi.ir/**`، `https://shekargah.pages.dev/**`، `https://*.shekargah.pages.dev/**`
+   - Site URL: `https://shekargaah.ir`
+   - Redirect URLs: `https://shekargaah.ir/**`، `https://shekargah.pages.dev/**`، `https://*.shekargah.pages.dev/**`
 
 اگر روزی خواستی دامنهٔ مستقل (مثل `shekargah.ir`) بگیری، رکورد CNAME را به همان دامنه تغییر بده و Custom Domain را عوض کن.
 - **بکاپ:** اسکیمای دیتابیس از فایلهای migration قابل بازسازی است، ولی دادهها و فایلهای آپلودشده جدا باید بکاپ شوند (جزئیات در DEPLOYMENT.md).
@@ -118,7 +118,7 @@
 
 | خطا | علت احتمالی |
 | --- | --- |
-| بنر «حالت نمایشی» روی سایت هست | متغیرهای `VITE_` در Cloudflare تنظیم نشدهاند، یا بعد از تنظیم دوباره دیپلوی نکردهای |
+| envهای Supabase ناقص‌اند | build production متوقف می‌شود/صفحهٔ پیکربندی نشان می‌دهد؛ هرگز دادهٔ نمونه نمایش داده نمی‌شود |
 | ورود یا ثبتنام خطای شبکه میدهد | Site URL یا Redirect URLs در Supabase درست نیست |
 | لینک ایمیل به localhost میرود | Site URL در Supabase هنوز `localhost` است |
 | `/submit` یا محصولها خالیاند | migrationها کامل اجرا نشدهاند، یا پروژه pause شده |

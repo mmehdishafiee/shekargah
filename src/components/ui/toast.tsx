@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={item.id}
             role={item.tone === 'error' ? 'alert' : 'status'}
-            className="pointer-events-auto flex max-w-md items-center gap-2.5 rounded-control bg-ink px-4 py-3 text-sm text-white shadow-pop"
+            className="pointer-events-auto flex max-w-md items-center gap-2.5 rounded-control bg-inverse px-4 py-3 text-sm text-inverse-ink shadow-pop ring-1 ring-white/10"
           >
             {item.tone === 'success' ? (
               <CheckCircle2 size={18} strokeWidth={1.75} className="shrink-0 text-emerald-300" aria-hidden />

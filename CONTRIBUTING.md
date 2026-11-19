@@ -6,10 +6,15 @@ Thanks for helping! This document explains how to work on the code.
 
 ```bash
 npm install
-npm run dev        # demo mode, no Supabase needed
 ```
 
-To work against a real database, create your own Supabase project (free tier is fine) and follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#1-supabase).
+The app talks straight to Supabase and **fails closed**: with no configuration it shows a setup screen instead of sample data. Copy `.env.example` to `.env.local`, fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, then run:
+
+```bash
+npm run dev
+```
+
+To get those two values, create your own Supabase project (free tier is fine) and follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#1-supabase).
 
 ## Workflow
 

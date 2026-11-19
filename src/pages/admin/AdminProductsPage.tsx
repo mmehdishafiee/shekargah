@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
-import { Check, ExternalLink, Inbox, Undo2, X } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { BadgeCheck, Check, ExternalLink, Inbox, Pencil, Rocket, Undo2, X } from 'lucide-react'
 import { useApi } from '@/data/api'
 import { useAdminProducts } from '@/data/queries'
 import type { ModerationAction, Product, ProductStatus } from '@/data/types'
+import { errorMessage } from '@/lib/errors'
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format'
 import { productPath, profilePath } from '@/lib/paths'
 import { hostnameOf } from '@/lib/text'
 import { LIMITS } from '@/lib/validation'
 import { ProductLogo } from '@/components/product/ProductLogo'
-import { Button } from '@/components/ui/Button'
+import { TagChips } from '@/components/product/TagChips'
+import { BidiText } from '@/components/ui/BidiText'
+import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorState, ProductRowSkeleton } from '@/components/ui/Feedback'
 import { useToast } from '@/components/ui/toast'
@@ -76,6 +79,15 @@ function ModerationCard({ product }: { product: Product }) {
   const toast = useToast()
   const [action, setAction] = useState<ModerationAction | null>(null)
 
+  const setVerified = useMutation({
+    mutationFn: (next: boolean) => api.setProductVerified(product.id, next),
+    onSuccess: async () => {
+      toast.success('نشان بررسی تغییر کرد.')
+      await queryClient.invalidateQueries({ queryKey: ['admin'] })
+    },
+    onError: (caught: unknown) => toast.error(errorMessage(caught)),
+  })
+
   const run = async (note: string) => {
     if (!action) return
     await api.moderateProduct(product.id, action, note || undefined)
@@ -102,8 +114,25 @@ function ModerationCard({ product }: { product: Product }) {
               {product.name}
             </Link>
             {product.category && <span className="text-[13px] text-ink-muted">{product.category.name}</span>}
+            {product.creditRole === 'hunter' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
+                <Rocket size={11} strokeWidth={2} aria-hidden />
+                شکارشده{product.makerCredit ? ` توسط ${product.makerCredit.displayName}` : product.makerCreditName ? ` — سازنده: ${product.makerCreditName}` : ''}
+              </span>
+            )}
+            {product.verified && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-[11px] font-semibold text-success-700">
+                <BadgeCheck size={11} strokeWidth={2} aria-hidden />
+                بررسی‌شده
+              </span>
+            )}
           </div>
-          <p className="mt-0.5 text-sm text-ink-muted">{product.tagline}</p>
+          <p className="bidi mt-0.5 text-sm text-ink-muted">{product.tagline}</p>
+          {product.tags.length > 0 && (
+            <div className="mt-2">
+              <TagChips tags={product.tags} />
+            </div>
+          )}
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-muted">
             <span>
               سازنده:{' '}
@@ -123,9 +152,7 @@ function ModerationCard({ product }: { product: Product }) {
 
       <details className="mt-4 rounded-lg bg-sunken/70 px-4 py-3 text-sm">
         <summary className="cursor-pointer font-medium text-ink-muted">توضیحات کامل</summary>
-        <p dir="auto" className="mt-2 whitespace-pre-line break-words leading-7">
-          {product.description}
-        </p>
+        <BidiText className="mt-2 break-words leading-7" text={product.description} />
       </details>
 
       {product.moderatedAt && (
@@ -140,6 +167,24 @@ function ModerationCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          loading={setVerified.isPending}
+          aria-label={product.verified ? `گرفتن نشان بررسی از ${product.name}` : `دادن نشان بررسی به ${product.name}`}
+          icon={<BadgeCheck size={15} strokeWidth={1.75} />}
+          onClick={() => setVerified.mutate(!product.verified)}
+        >
+          {product.verified ? 'لغو نشان' : 'نشان بررسی'}
+        </Button>
+        <ButtonLink
+          to={`/admin/products/${product.slug}/edit`}
+          variant="secondary"
+          size="sm"
+          icon={<Pencil size={15} strokeWidth={1.75} />}
+        >
+          ویرایش
+        </ButtonLink>
         {product.status === 'pending' && (
           <>
             <Button variant="secondary" size="sm" icon={<X size={16} strokeWidth={1.75} />} onClick={() => setAction('reject')}>
