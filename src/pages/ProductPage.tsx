@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
+import { localScreenshots, localScreenshotUrl } from '@/data/localScreenshots'
 import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
 import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
@@ -90,10 +91,16 @@ function ProductDetails({ product }: { product: Product }) {
   // Locally served fallback icons are root-relative; social/schema consumers
   // need absolute URLs.
   const logoImage = product.logoUrl?.startsWith('/') ? `${SITE_URL}${product.logoUrl}` : product.logoUrl
+  // Products without uploaded screenshots fall back to a homepage capture
+  // bundled with the build.
+  const shots = product.screenshots.length > 0 ? product.screenshots : localScreenshots(product.id, product.name)
+  // A real screenshot is a better social preview than a small logo.
+  const bundledShot = localScreenshotUrl(product.id)
+  const socialImage = product.screenshots[0]?.url ?? (bundledShot ? `${SITE_URL}${bundledShot}` : logoImage)
   useDocumentMeta(product.name, product.tagline, {
     path: `/products/${encodeURIComponent(product.slug)}`,
     type: 'product',
-    image: logoImage,
+    image: socialImage,
     robots: isPublished ? undefined : 'noindex',
     schema: isPublished
       ? productSchema({
@@ -231,13 +238,13 @@ function ProductDetails({ product }: { product: Product }) {
           </div>
         </header>
 
-        {product.screenshots.length > 0 && (
+        {shots.length > 0 && (
           <section aria-label="تصاویر محصول" className={`${cardClass} p-5 sm:p-6`}>
             <h2 className={`${sectionHeading} mb-4`}>
               <Images size={16} strokeWidth={1.75} aria-hidden />
               تصاویر محصول
             </h2>
-            <ScreenshotGallery shots={product.screenshots} productName={product.name} />
+            <ScreenshotGallery shots={shots} productName={product.name} />
           </section>
         )}
 

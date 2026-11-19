@@ -34,7 +34,7 @@ export function ScreenshotGallery({ shots, productName }: { shots: GalleryShot[]
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={`grid gap-3 ${shots.length > 1 ? 'sm:grid-cols-2' : ''}`}>
         {shots.map((shot, index) => (
           <button
             key={`${shot.url}-${index}`}
