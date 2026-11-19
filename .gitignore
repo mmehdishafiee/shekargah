@@ -37,3 +37,6 @@ tmp-import/
 
 # unrelated scratch folders kept out of the app build and checks
 Telegram Sample Bot/
+
+# zipped dist/ prepared for the cPanel upload
+dist-upload-*.zip
