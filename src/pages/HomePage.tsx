@@ -20,6 +20,13 @@ const SORTS: { value: SortOrder; label: string }[] = [
   { value: 'newest', label: 'تازه‌ترین' },
 ]
 
+const PERIOD_LINKS: { to: string; label: string }[] = [
+  { to: '/leaderboard/daily', label: 'روزانه' },
+  { to: '/leaderboard/weekly', label: 'هفتگی' },
+  { to: '/leaderboard/monthly', label: 'ماهانه' },
+  { to: '/leaderboard/yearly', label: 'سالانه' },
+]
+
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
     active ? 'border-ink bg-ink text-canvas' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
@@ -142,14 +149,17 @@ export function HomePage() {
         )}
 
         {!isBrowsing && (
-          <DailyWinners
-            groups={winners.data ?? []}
-            loading={winners.isPending}
-            error={winners.error}
-            onRetry={() => winners.refetch()}
-            votes={votes.data}
-            saved={saved.data}
-          />
+          <>
+            <LeaderboardLinks />
+            <DailyWinners
+              groups={winners.data ?? []}
+              loading={winners.isPending}
+              error={winners.error}
+              onRetry={() => winners.refetch()}
+              votes={votes.data}
+              saved={saved.data}
+            />
+          </>
         )}
 
         {isBrowsing && (
@@ -214,6 +224,29 @@ export function HomePage() {
   )
 }
 
+/** Links to the four leaderboard periods, so the dated pages are reachable from home. */
+function LeaderboardLinks() {
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-sm font-bold">
+        جدول رتبه‌بندی{' '}
+        <span className="font-normal text-ink-muted">— محصولات هر روز، هفته، ماه و سال</span>
+      </h2>
+      <div role="group" aria-label="بازه‌های جدول رتبه‌بندی" className="flex flex-wrap gap-2">
+        {PERIOD_LINKS.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /** The home page's core surface: each recent day with its top products. */
 function DailyWinners({
   groups,
@@ -269,7 +302,15 @@ function DailyWinners({
             <h2 id={`day-${group.day}`} className="text-lg font-extrabold">
               {groupIndex === 0 ? 'محصولات امروز' : `برترین‌های ${formatDay(group.day)}`}
             </h2>
-            <p className="text-[13px] text-ink-muted">{formatDay(group.day)}</p>
+            <p className="flex items-baseline gap-2 text-[13px] text-ink-muted">
+              <span>{formatDay(group.day)}</span>
+              <Link
+                to={groupIndex === 0 ? '/leaderboard/daily' : `/leaderboard/daily/${group.day}`}
+                className="font-semibold text-brand-700 hover:underline"
+              >
+                جدول این روز
+              </Link>
+            </p>
           </div>
           <div className={`${cardClass} p-1.5 sm:p-2`}>
             <ol aria-label={`محصولات ${formatDay(group.day)}`}>
