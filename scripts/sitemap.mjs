@@ -8,7 +8,48 @@ import { siteUrl } from './site.mjs'
 
 const SITE = siteUrl()
 
-const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor', '/privacy', '/changelog']
+const STATIC_ROUTES = ['/', '/today', '/trending', '/leaderboard', '/leaderboard/daily', '/leaderboard/weekly', '/leaderboard/monthly', '/leaderboard/yearly', '/topics', '/makers', '/companies', '/collections', '/blog', '/about', '/help', '/faq', '/contact', '/sponsor', '/privacy', '/changelog']
+
+const TEHRAN_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' })
+
+/** The Tehran calendar day a timestamp belongs to, as `YYYY-MM-DD`. */
+function tehranDay(timestamp) {
+  return TEHRAN_DAY.format(new Date(timestamp))
+}
+
+/** ISO week key (`2026-W43`) for a `YYYY-MM-DD` day, so weekly pages are one per week. */
+function weekKey(day) {
+  const date = new Date(`${day}T00:00:00Z`)
+  const thursday = new Date(date.getTime() + (3 - ((date.getUTCDay() + 6) % 7)) * 86400000)
+  const year = thursday.getUTCFullYear()
+  const week = Math.floor((thursday.getTime() - Date.UTC(year, 0, 1)) / 604800000) + 1
+  return `${year}-W${String(week).padStart(2, '0')}`
+}
+
+/**
+ * One dated leaderboard URL per day/week/month/year that actually contains a
+ * product — the same "products of that period" pages the app serves.
+ */
+function leaderboardRoutes(publishedAt) {
+  const picked = new Map()
+  const keep = (key, day) => {
+    const current = picked.get(key)
+    if (!current || day > current) picked.set(key, day)
+  }
+  for (const timestamp of publishedAt) {
+    if (!timestamp) continue
+    const day = tehranDay(timestamp)
+    const [year, month] = day.split('-')
+    keep(`daily:${day}`, day)
+    keep(`weekly:${weekKey(day)}`, day)
+    keep(`monthly:${year}-${month}`, day)
+    keep(`yearly:${year}`, day)
+  }
+  return [...picked.entries()].map(([key, day]) => {
+    const [period, ...rest] = key.split(':')
+    return { path: `/leaderboard/${period}/${day}`, day: rest.join(':') }
+  })
+}
 
 function escapeXml(value) {
   return value.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[char])
@@ -43,7 +84,7 @@ export async function generateSitemap({ url, key, outDir }) {
 
   for (const route of STATIC_ROUTES) add(route, null, route === '/' ? 'daily' : 'weekly', route === '/' ? '1.0' : '0.7')
 
-  let counts = { products: 0, topics: 0, companies: 0, posts: 0 }
+  let counts = { products: 0, topics: 0, companies: 0, posts: 0, leaderboards: 0 }
 
   try {
     const products = await rest(url, key, 'products?select=slug,published_at&status=eq.published&limit=2000')
@@ -51,6 +92,11 @@ export async function generateSitemap({ url, key, outDir }) {
       add(`/products/${encodeURIComponent(product.slug)}`, product.published_at?.slice(0, 10), 'weekly', '0.8')
     }
     counts.products = products.length
+
+    for (const { path, day } of leaderboardRoutes(products.map((product) => product.published_at))) {
+      add(path, day, 'weekly', '0.6')
+      counts.leaderboards += 1
+    }
 
     const topics = await fetchRpc(url, key, 'list_topics')
     for (const topic of topics) add(`/?category=${encodeURIComponent(topic.slug)}`, null, 'weekly', '0.6')

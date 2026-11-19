@@ -1,6 +1,7 @@
 import { AuthError, createClient, type PostgrestError, type SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, type ApiErrorCode } from '@/lib/errors'
 import { env } from '@/lib/env'
+import { leaderboardWindow, tehranDateLabel } from '@/lib/engagement'
 import { toWebpFile } from '@/lib/image'
 import { normalizeFa } from '@/lib/text'
 import { parseStored } from './storage'
@@ -142,6 +143,24 @@ interface RankedRow extends FeedRow {
   score: number | null
 }
 
+/** A product read straight from `products` for a leaderboard window. */
+interface LaunchRow {
+  id: string
+  slug: string
+  name: string
+  tagline: string
+  logo_path: string | null
+  votes_count: number
+  comments_count: number
+  views_count: number
+  published_at: string | null
+  rating_avg: number | null
+  rating_count: number | null
+  verified: boolean | null
+  category: { id: string; slug: string; name: string } | null
+  product_tags?: { tags: { slug: string; name: string } | null }[]
+}
+
 interface SavedRow {
   product_id: string
   products: ProductRow | null
@@ -180,6 +199,10 @@ const PRODUCT_SELECT = `id, slug, name, tagline, description, website_url, logo_
   moderator:profiles!products_moderated_by_fkey(display_name),
   product_tags:product_tags(tags(slug, name)),
   product_screenshots:product_screenshots(storage_provider, object_key, alt_text, sort_order)`
+const LEADERBOARD_SELECT = `id, slug, name, tagline, logo_path, votes_count, comments_count, views_count,
+  rating_avg, rating_count, verified, published_at,
+  category:categories(id, slug, name),
+  product_tags:product_tags(tags(slug, name))`
 const COMMENT_SELECT = `id, product_id, body, created_at, author:profiles!comments_author_id_fkey(${PROFILE_SUMMARY})`
 const REPORT_SELECT = `id, reason, details, status, created_at, resolved_at,
   reporter:profiles!reports_reporter_id_fkey(${PROFILE_SUMMARY}),
@@ -208,6 +231,29 @@ const toRanked = (row: RankedRow, publicUrl: (bucket: string, path: string | nul
   tags: toTagRefs(row.tag_slugs, row.tag_names),
   rank: row.rank,
   score: row.score,
+})
+
+/** A product published inside the leaderboard window, before any window votes. */
+const toRankedLaunch = (
+  row: LaunchRow,
+  publicUrl: (bucket: string, path: string | null) => string | null,
+): RankedProduct => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  tagline: row.tagline,
+  logoUrl: publicUrl('product-logos', row.logo_path) ?? localLogo(row.id),
+  votesCount: row.votes_count,
+  commentsCount: row.comments_count,
+  viewsCount: row.views_count,
+  ratingAvg: Number(row.rating_avg ?? 0),
+  ratingCount: Number(row.rating_count ?? 0),
+  verified: Boolean(row.verified),
+  publishedAt: row.published_at,
+  category: row.category,
+  tags: (row.product_tags ?? []).flatMap((item) => (item.tags ? [{ slug: item.tags.slug, name: item.tags.name }] : [])),
+  rank: 0,
+  score: 0,
 })
 
 // ---------------------------------------------------------------------------
@@ -991,17 +1037,83 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
     },
 
     async listLeaderboard({ period, page, anchor }) {
-      const args = { p_period: period, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }
-      let response = await supabase.rpc('list_leaderboard', anchor ? { ...args, p_anchor: anchor } : args)
-      // Until migration 20261102000020 is applied the four-argument overload is
-      // missing; fall back to the rolling window so dated links never break.
-      if (anchor && response.error && (response.error.code === 'PGRST202' || response.error.message?.includes('list_leaderboard'))) {
-        response = await supabase.rpc('list_leaderboard', args)
+      const collect = async (window: { startIso: string; endIso: string }) => {
+        // 1) Products ranked by the votes they received inside the window.
+        const byVotes = new Map<string, RankedProduct>()
+        for (let offset = 0; offset <= 500; offset += 50) {
+          const args = { p_period: period, p_limit: 50, p_offset: offset }
+          let response = await supabase.rpc('list_leaderboard', anchor ? { ...args, p_anchor: anchor } : args)
+          // Until migration 20261102000020 is applied the four-argument overload is
+          // missing; fall back to the rolling window so dated links never break.
+          if (anchor && response.error && (response.error.code === 'PGRST202' || response.error.message?.includes('list_leaderboard'))) {
+            response = await supabase.rpc('list_leaderboard', args)
+          }
+          const rows = check(response) as RankedRow[]
+          for (const row of rows) byVotes.set(row.id, toRanked(row, publicUrl))
+          if (rows.length < 50) break
+        }
+
+        // 2) Products published inside the window. Without these a quiet day or
+        // week would look empty even though products did launch in it.
+        const launches = check(
+          await supabase
+            .from('products')
+            .select(LEADERBOARD_SELECT)
+            .eq('status', 'published')
+            .gte('published_at', window.startIso)
+            .lt('published_at', window.endIso)
+            .order('votes_count', { ascending: false })
+            .order('published_at', { ascending: false })
+            .limit(500)
+            .returns<LaunchRow[]>(),
+        )
+
+        const merged = new Map(byVotes)
+        for (const row of launches) if (!merged.has(row.id)) merged.set(row.id, toRankedLaunch(row, publicUrl))
+
+        return [...merged.values()]
+          .sort(
+            (a, b) =>
+              (b.score ?? 0) - (a.score ?? 0) ||
+              b.votesCount - a.votesCount ||
+              (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '') ||
+              a.id.localeCompare(b.id),
+          )
+          .map((item, index) => ({ ...item, rank: index + 1 }))
       }
-      const rows = check(response) as RankedRow[]
-      const total = Number(rows[0]?.total_count ?? 0)
-      const items = rows.map((row) => toRanked(row, publicUrl))
-      return { items, total, hasMore: page * PAGE_SIZE + items.length < total }
+
+      let window = leaderboardWindow(period, anchor)
+      let ordered = await collect(window)
+
+      // /leaderboard/daily with no date means "the latest day with products",
+      // not "today even if nothing happened" — otherwise the default page is
+      // empty whenever nobody launched anything since the last import.
+      if (!anchor && ordered.length === 0) {
+        const latest = maybe(
+          await supabase
+            .from('products')
+            .select('published_at')
+            .eq('status', 'published')
+            .lt('published_at', window.endIso)
+            .order('published_at', { ascending: false })
+            .limit(1)
+            .maybeSingle<{ published_at: string | null }>(),
+        )
+        const day = latest?.published_at ? tehranDateLabel(new Date(latest.published_at)) : null
+        if (day && day !== window.endDay) {
+          window = leaderboardWindow(period, day)
+          ordered = await collect(window)
+        }
+      }
+
+      const start = page * PAGE_SIZE
+      return {
+        items: ordered.slice(start, start + PAGE_SIZE),
+        total: ordered.length,
+        hasMore: start + PAGE_SIZE < ordered.length,
+        startDay: window.startDay,
+        endDay: window.endDay,
+      }
     },
 
     async listTrending(page) {

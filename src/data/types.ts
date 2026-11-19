@@ -342,6 +342,16 @@ export interface Page<T> {
   hasMore: boolean
 }
 
+/**
+ * A leaderboard page plus the window it actually covers. Without an explicit
+ * date the server walks back to the latest period that still has products, so
+ * the UI has to read the window from the data instead of assuming "today".
+ */
+export interface RankedPage extends Page<RankedProduct> {
+  startDay: string
+  endDay: string
+}
+
 export interface ProductCreditInput {
   role: CreditRole
   /** Username of the credited maker when they have a Shekargah account. */
@@ -449,8 +459,12 @@ export interface ShekargahApi {
   listDailyProducts(input: { date?: string; page: number }): Promise<Page<RankedProduct>>
   /** Top products of each recent day (the home discovery surface). */
   listDailyWinners(input: { days?: number; perDay?: number }): Promise<DailyGroup[]>
-  /** Products ranked by votes received inside a window, not lifetime totals. */
-  listLeaderboard(input: { period: LeaderboardPeriod; page: number; anchor?: string | null }): Promise<Page<RankedProduct>>
+  /**
+   * Products of a leaderboard period: those ranked by votes received inside the
+   * window, plus the products published inside it. Without an explicit anchor
+   * the window falls back to the latest period that has any content.
+   */
+  listLeaderboard(input: { period: LeaderboardPeriod; page: number; anchor?: string | null }): Promise<RankedPage>
   /** Products with the fastest recent engagement. */
   listTrending(page: number): Promise<Page<RankedProduct>>
   recordProductView(productId: string, viewerKey: string): Promise<void>

@@ -202,6 +202,17 @@ describe('demo backend mirrors the database rules', () => {
     expect(board.items[0]?.score).toBe(1)
   })
 
+  it('lists the products of a period even when nobody has voted yet', async () => {
+    const newest = (await api.listProducts({ sort: 'newest', page: 0 })).items[0]!
+    const weekly = await api.listLeaderboard({ period: 'weekly', page: 0 })
+    const row = weekly.items.find((item) => item.id === newest.id)
+    expect(row).toBeDefined()
+    expect(row!.score).toBe(0)
+    // A period with nothing published and nothing voted stays empty.
+    const empty = await api.listLeaderboard({ period: 'monthly', page: 0, anchor: '2000-01-01' })
+    expect(empty.items).toHaveLength(0)
+  })
+
   it('ranks trending by recent votes and comments', async () => {
     await api.signIn({ email: DEMO_USER_EMAIL, password: 'x' })
     const [first, second] = (await api.listProducts({ sort: 'popular', page: 0 })).items

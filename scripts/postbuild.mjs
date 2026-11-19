@@ -39,7 +39,7 @@ const robots = await generateRobots({ outDir: 'dist' })
 console.log(`[robots] ${robots.disallow} disallow rules, sitemap ${robots.sitemap}`)
 
 const sitemap = await generateSitemap({ url, key, outDir: 'dist' })
-console.log(`[sitemap] ${sitemap.total} urls (${sitemap.products} products, ${sitemap.topics} topics, ${sitemap.companies} companies, ${sitemap.posts} posts)`)
+console.log(`[sitemap] ${sitemap.total} urls (${sitemap.products} products, ${sitemap.leaderboards} leaderboards, ${sitemap.topics} topics, ${sitemap.companies} companies, ${sitemap.posts} posts)`)
 
 const feed = await generateFeed({ url, key, outDir: 'dist' })
 console.log(`[feed] ${feed.items} items`)

@@ -1,5 +1,5 @@
 import { ApiError } from '@/lib/errors'
-import { leaderboardWindowStart, tehranDateLabel } from '@/lib/engagement'
+import { leaderboardWindow, tehranDateLabel } from '@/lib/engagement'
 import { normalizeFa, slugify } from '@/lib/text'
 import { createDemoState, type DemoComment, type DemoProduct, type DemoState, type DemoUser } from './demoSeed'
 import {
@@ -588,23 +588,61 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
         .map((group) => ({ day: group.day, items: group.items.slice(0, perDay) }))
     },
 
-    async listLeaderboard({ period, page }) {
+    async listLeaderboard({ period, page, anchor }) {
       await wait()
-      const startAt = leaderboardWindowStart(period as LeaderboardPeriod).getTime()
-      const scores = new Map<string, number>()
-      for (const vote of state.votes) {
-        if (new Date(vote.createdAt).getTime() >= startAt) scores.set(vote.productId, (scores.get(vote.productId) ?? 0) + 1)
+      const collect = (startAt: number, endAt: number) => {
+        const scores = new Map<string, number>()
+        for (const vote of state.votes) {
+          const at = new Date(vote.createdAt).getTime()
+          if (at >= startAt && at < endAt) scores.set(vote.productId, (scores.get(vote.productId) ?? 0) + 1)
+        }
+        // Products published inside the window count even before anyone votes,
+        // so a quiet day still has something to show.
+        const published = (product: (typeof state.products)[number]) => {
+          if (!product.publishedAt) return false
+          const at = new Date(product.publishedAt).getTime()
+          return at >= startAt && at < endAt
+        }
+        return state.products
+          .filter((p) => p.status === 'published' && ((scores.get(p.id) ?? 0) > 0 || published(p)))
+          .sort(
+            (a, b) =>
+              (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) ||
+              b.votesCount - a.votesCount ||
+              (b.publishedAt ?? '').localeCompare(a.publishedAt ?? '') ||
+              a.id.localeCompare(b.id),
+          )
+          .map((product) => ({ product, score: scores.get(product.id) ?? 0 }))
       }
-      const matches = state.products
-        .filter((p) => p.status === 'published' && (scores.get(p.id) ?? 0) > 0)
-        .sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0) || (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+
+      let window = leaderboardWindow(period as LeaderboardPeriod, anchor)
+      let matches = collect(new Date(window.startIso).getTime(), new Date(window.endIso).getTime())
+
+      // Without a date the page shows the latest period that has content.
+      if (!anchor && matches.length === 0) {
+        const latest = state.products
+          .filter((p) => p.status === 'published' && p.publishedAt && p.publishedAt < window.endIso)
+          .reduce<string | null>((best, p) => (best === null || p.publishedAt! > best ? p.publishedAt! : best), null)
+        const day = latest ? tehranDateLabel(new Date(latest)) : null
+        if (day && day !== window.endDay) {
+          window = leaderboardWindow(period as LeaderboardPeriod, day)
+          matches = collect(new Date(window.startIso).getTime(), new Date(window.endIso).getTime())
+        }
+      }
+
       const start = Math.max(0, page) * PAGE_SIZE
-      const items: RankedProduct[] = matches.slice(start, start + PAGE_SIZE).map((p, index) => ({
-        ...toProductSummary(p),
+      const items: RankedProduct[] = matches.slice(start, start + PAGE_SIZE).map(({ product, score }, index) => ({
+        ...toProductSummary(product),
         rank: start + index + 1,
-        score: scores.get(p.id) ?? 0,
+        score,
       }))
-      return { items, total: matches.length, hasMore: start + PAGE_SIZE < matches.length }
+      return {
+        items,
+        total: matches.length,
+        hasMore: start + PAGE_SIZE < matches.length,
+        startDay: window.startDay,
+        endDay: window.endDay,
+      }
     },
 
     async listTrending(page) {

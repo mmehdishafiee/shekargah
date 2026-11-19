@@ -16,9 +16,12 @@ interface ProductRowProps {
   voted: boolean
   saved?: boolean
   rank?: number
+  /** Votes received inside a window (leaderboard rows), not lifetime totals. */
+  score?: number | null
+  scoreLabel?: string
 }
 
-export function ProductRow({ product, voted, saved = false, rank }: ProductRowProps) {
+export function ProductRow({ product, voted, saved = false, rank, score, scoreLabel }: ProductRowProps) {
   return (
     <article className="group relative flex items-center gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-sunken/70 sm:gap-4 sm:px-4 sm:py-3.5">
       <ProductLogo name={product.name} seed={product.slug} url={product.logoUrl} />
@@ -62,6 +65,11 @@ export function ProductRow({ product, voted, saved = false, rank }: ProductRowPr
             </span>
           </span>
           <ViewCount count={product.viewsCount} />
+          {score !== undefined && (score ?? 0) > 0 && (
+            <span className="tabular-nums font-medium text-ink">
+              {formatNumber(score ?? 0)} {scoreLabel}
+            </span>
+          )}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-center gap-2">
