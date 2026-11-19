@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
-import { localScreenshots, localScreenshotUrl } from '@/data/localScreenshots'
+import { localScreenshots } from '@/data/localScreenshots'
 import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
 import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
@@ -95,8 +95,10 @@ function ProductDetails({ product }: { product: Product }) {
   // bundled with the build.
   const shots = product.screenshots.length > 0 ? product.screenshots : localScreenshots(product.id, product.name)
   // A real screenshot is a better social preview than a small logo.
-  const bundledShot = localScreenshotUrl(product.id)
-  const socialImage = product.screenshots[0]?.url ?? (bundledShot ? `${SITE_URL}${bundledShot}` : logoImage)
+  const firstShot = shots[0]?.url
+  const socialImage = firstShot
+    ? (firstShot.startsWith('/') ? `${SITE_URL}${firstShot}` : firstShot)
+    : logoImage
   useDocumentMeta(product.name, product.tagline, {
     path: `/products/${encodeURIComponent(product.slug)}`,
     type: 'product',

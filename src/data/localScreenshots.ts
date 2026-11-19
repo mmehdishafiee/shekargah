@@ -127,8 +127,34 @@ export const localScreenshotUrl = (productId: string): string | null => {
   return stem ? `/screenshots/${stem}.webp` : null
 }
 
-/** Locally served homepage screenshot for a product with no stored screenshots. */
+// Products whose uploaded gallery screenshots were pulled out of Supabase
+// Storage into the build (same files, re-encoded at 1600px).
+const galleries: Record<string, string[]> = {
+  '7bbd38ff-dc3e-462c-aef5-9a512e387d06': ['mcpfarsi-ir-shot-1'],
+  'a5526c97-9912-4c43-a9fc-e2aeb4a9228f': ['barayand-io-shot-1'],
+  '2ac9ed5a-f12d-46ad-8b1d-68e7ab73c8b7': ['blooko-ir-shot-1'],
+  '0afeea87-0af7-404a-b8d1-bd7eeaa87d6a': ['map-pixelabad-ir-shot-1'],
+  'c1921dc0-ee0d-4519-9c7f-66be83f1f1ae': ['trafit-ir-shot-1'],
+  '0c089a47-eba9-4bd3-a2b1-00118516ebb6': ['chertpert-com-shot-1'],
+  '5400404d-dd35-4043-9c03-60b3ffc4861d': ['diafish-vercel-app-shot-1'],
+  '8b037a39-b622-4316-af8e-f165ba14aa74': ['subgen-tg-shot-1', 'subgen-tg-shot-2', 'subgen-tg-shot-3', 'subgen-tg-shot-4', 'subgen-tg-shot-5'],
+  '172b954c-3332-490d-ad64-4698803de014': ['ayaraa-site-shot-1'],
+  'b885c88b-4265-497e-a488-bb355febab7a': ['gerdo-ai-shot-1'],
+  '07779c0e-7732-41a2-8c26-75d91010513b': ['gereh-pro-shot-1'],
+  '834a841d-049c-4148-aefa-192f3724d23c': ['metto-ir-shot-1'],
+  '8e005079-fd21-4405-8f90-121e9dc91bdf': ['mipel-ir-shot-1'],
+}
+
+/** Locally served screenshots for a product with no stored screenshots. */
 export const localScreenshots = (productId: string, productName: string): LocalScreenshot[] => {
+  const gallery = galleries[productId]
+  if (gallery) {
+    return gallery.map((stem, index) => ({
+      url: `/screenshots/${stem}.webp`,
+      key: `local:${stem}`,
+      alt: `تصویر ${index + 1} از ${productName}`,
+    }))
+  }
   const url = localScreenshotUrl(productId)
   if (!url) return []
   return [{
