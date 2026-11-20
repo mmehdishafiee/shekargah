@@ -1,4 +1,4 @@
-import { Code2, ExternalLink, Globe, Heart, Package, Rocket, ShieldCheck, Sparkles } from 'lucide-react'
+import { Code2, ExternalLink, Heart, Package, Rocket, ShieldCheck, Sparkles } from 'lucide-react'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { formatNumber } from '@/lib/format'
 import { env } from '@/lib/env'
@@ -139,21 +139,21 @@ export function AboutPage() {
         <h2 className="text-lg font-bold">این پروژه از کجاست؟</h2>
         <div className="mt-4 space-y-5 text-[15px] leading-7">
           <div className="flex gap-3.5">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sunken text-ink-muted">
-              <Globe size={19} strokeWidth={1.75} aria-hidden />
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sunken p-1.5">
+              <img src="/brand/mmehdi.png" alt="لوگوی وبلاگ میم" width={200} height={123} className="max-h-full w-full object-contain" />
             </span>
             <p>
-              شکارگاه توسط <span className="font-bold">محمد مهدی شفیعی</span> ساخته شده است. نوشته‌ها و پروژه‌های دیگرش را
-              می‌توانی در{' '}
+              شکارگاه توسط <span className="font-bold">محمد مهدی شفیعی</span> ساخته شده است. نوشتهها و پروژههای دیگرش را
+              میتوانی در{' '}
               <a href="https://mmehdi.ir" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-700 hover:underline">
-                mmehdi.ir
+                وبلاگ میم
               </a>{' '}
               ببینی.
             </p>
           </div>
           <div className="flex gap-3.5">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sunken text-ink-muted">
-              <Rocket size={19} strokeWidth={1.75} aria-hidden />
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sunken p-1.5">
+              <img src="/brand/leepaak.png" alt="لوگوی لیپک" className="size-full object-contain" />
             </span>
             <p>
               این سایت یکی از محصولات{' '}
