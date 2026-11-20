@@ -9,10 +9,12 @@ interface MenuProps {
   align?: 'start' | 'end'
   /** Open on pointer hover instead of requiring a click (used by the header). */
   hover?: boolean
+  /** Replaces the default panel sizing, so callers can build wide panels. */
+  panelClassName?: string
 }
 
 /** Small disclosure menu: closes on outside click, Escape and item selection. */
-export function Menu({ label, trigger, children, triggerClassName = '', align = 'end', hover = false }: MenuProps) {
+export function Menu({ label, trigger, children, triggerClassName = '', align = 'end', hover = false, panelClassName }: MenuProps) {
   const [open, setOpen] = useState(false)
   const closeTimer = useRef<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -74,9 +76,9 @@ export function Menu({ label, trigger, children, triggerClassName = '', align = 
       {open && (
         <div
           id={menuId}
-          className={`absolute top-full z-40 mt-2 min-w-52 rounded-control border border-line bg-surface/95 p-1.5 shadow-pop backdrop-blur-md ${
-            align === 'start' ? 'start-0' : 'end-0'
-          }`}
+          className={`absolute top-full z-40 mt-2 rounded-control border border-line bg-surface shadow-pop ${
+            panelClassName ?? 'min-w-52 p-1.5'
+          } ${align === 'start' ? 'start-0' : 'end-0'}`}
         >
           {children(() => setOpen(false))}
         </div>

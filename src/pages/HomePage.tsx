@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
-import { PackageSearch, Plus } from 'lucide-react'
+import { ArrowLeft, CalendarDays, PackageSearch, Plus, Sparkles, Trophy } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { useCategories, useDailyWinners, useMySavedIds, useMyVotes, useProductFeed, useSiteStats, useSponsors, useTopics, useTopMakers } from '@/data/queries'
 import type { ProductSummary, SortOrder } from '@/data/types'
@@ -298,19 +298,36 @@ function DailyWinners({
     <div className="space-y-7">
       {groups.map((group, groupIndex) => (
         <section key={group.day} aria-labelledby={`day-${group.day}`}>
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id={`day-${group.day}`} className="text-lg font-extrabold">
-              {groupIndex === 0 ? 'محصولات امروز' : `برترین‌های ${formatDay(group.day)}`}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
+            <h2 id={`day-${group.day}`} className="text-lg">
+              <Link
+                to={groupIndex === 0 ? '/today' : `/leaderboard/daily/${group.day}`}
+                className="group inline-flex items-center gap-2 rounded-full border border-line bg-surface py-1.5 pe-3 ps-2 font-extrabold text-ink shadow-card transition-colors hover:border-brand-600 hover:text-brand-700"
+              >
+                <span className="grid size-7 place-items-center rounded-full bg-brand-50 text-brand-700">
+                  <Sparkles size={14} strokeWidth={2} aria-hidden />
+                </span>
+                {groupIndex === 0 ? 'محصولات امروز' : `برترین‌های ${formatDay(group.day)}`}
+                <ArrowLeft size={15} strokeWidth={2} className="text-ink-faint transition-colors group-hover:text-brand-700" aria-hidden />
+              </Link>
             </h2>
-            <p className="flex items-baseline gap-2 text-[13px] text-ink-muted">
-              <span>{formatDay(group.day)}</span>
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 to={groupIndex === 0 ? '/leaderboard/daily' : `/leaderboard/daily/${group.day}`}
-                className="font-semibold text-brand-700 hover:underline"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+              >
+                <CalendarDays size={14} strokeWidth={1.75} aria-hidden />
+                {formatDay(group.day)}
+              </Link>
+              <ButtonLink
+                to={groupIndex === 0 ? '/leaderboard/daily' : `/leaderboard/daily/${group.day}`}
+                variant="secondary"
+                size="sm"
+                icon={<Trophy size={14} strokeWidth={2} aria-hidden />}
               >
                 جدول این روز
-              </Link>
-            </p>
+              </ButtonLink>
+            </div>
           </div>
           <div className={`${cardClass} p-1.5 sm:p-2`}>
             <ol aria-label={`محصولات ${formatDay(group.day)}`}>
