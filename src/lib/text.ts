@@ -32,3 +32,35 @@ export function hostnameOf(url: string): string {
     return url
   }
 }
+
+/**
+ * Referral parameters attached to the outbound "visit site" links, so makers
+ * can see in their own analytics that the visit came from Shekargah.
+ */
+const REFERRAL_PARAMS = {
+  utm_source: 'shekargaah',
+  utm_medium: 'referral',
+  utm_campaign: 'product_page',
+}
+
+/**
+ * Add our referral parameters to an outbound URL. Existing parameters are kept
+ * (including any utm_* the maker set themselves) and a `#fragment` stays at the
+ * end. `content` distinguishes the individual product (its slug).
+ */
+export function withReferralUtm(url: string, content?: string): string {
+  const hashAt = url.indexOf('#')
+  const withoutHash = hashAt >= 0 ? url.slice(0, hashAt) : url
+  const hash = hashAt >= 0 ? url.slice(hashAt) : ''
+  const queryAt = withoutHash.indexOf('?')
+  const base = queryAt >= 0 ? withoutHash.slice(0, queryAt) : withoutHash
+  const params = new URLSearchParams(queryAt >= 0 ? withoutHash.slice(queryAt + 1) : '')
+
+  for (const [key, value] of Object.entries(REFERRAL_PARAMS)) {
+    if (!params.has(key)) params.set(key, value)
+  }
+  if (content && !params.has('utm_content')) params.set('utm_content', content)
+
+  const query = params.toString()
+  return query ? `${base}?${query}${hash}` : `${base}${hash}`
+}

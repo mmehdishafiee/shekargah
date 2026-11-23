@@ -23,7 +23,7 @@ import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
 import { productPath, profilePath } from '@/lib/paths'
-import { hostnameOf } from '@/lib/text'
+import { hostnameOf, withReferralUtm } from '@/lib/text'
 import { productSchema, SITE_URL, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { CommentSection } from '@/components/product/CommentSection'
 import { ProductLogo } from '@/components/product/ProductLogo'
@@ -186,7 +186,7 @@ function ProductDetails({ product }: { product: Product }) {
 
             <div className="mt-5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
               <a
-                href={product.websiteUrl}
+                href={withReferralUtm(product.websiteUrl, product.slug)}
                 target="_blank"
                 rel="noopener noreferrer nofollow ugc"
                 className={buttonClass('primary', 'md', 'h-11 px-5')}
@@ -363,7 +363,7 @@ function ProductDetails({ product }: { product: Product }) {
               وب‌سایت
             </dt>
             <dd className="ms-auto min-w-0">
-              <a href={product.websiteUrl} target="_blank" rel="noopener noreferrer nofollow ugc" className="ltr block truncate font-medium hover:text-brand-700">
+              <a href={withReferralUtm(product.websiteUrl, product.slug)} target="_blank" rel="noopener noreferrer nofollow ugc" className="ltr block truncate font-medium hover:text-brand-700">
                 {hostnameOf(product.websiteUrl)}
               </a>
             </dd>

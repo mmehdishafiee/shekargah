@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { formatNumber, formatRelative } from './format'
-import { hostnameOf, normalizeFa, slugify } from './text'
+import { hostnameOf, normalizeFa, slugify, withReferralUtm } from './text'
 import indexHtml from '../../index.html?raw'
 import { isHttpUrl, validateComment, validateImage, validateProduct, validateUsername } from './validation'
 
@@ -19,6 +19,26 @@ describe('text helpers', () => {
 
   it('extracts readable hostnames', () => {
     expect(hostnameOf('https://www.example.com/path?q=1')).toBe('example.com')
+  })
+
+  it('appends referral parameters to the base outbound URL', () => {
+    expect(withReferralUtm('https://bakiya.ir')).toBe(
+      'https://bakiya.ir?utm_source=shekargaah&utm_medium=referral&utm_campaign=product_page',
+    )
+    expect(withReferralUtm('https://bakiya.ir', 'bakiya')).toContain('&utm_content=bakiya')
+  })
+
+  it('keeps existing query, utm and hash parts intact', () => {
+    expect(withReferralUtm('https://example.com/app?ref=1')).toBe(
+      'https://example.com/app?ref=1&utm_source=shekargaah&utm_medium=referral&utm_campaign=product_page',
+    )
+    // A maker's own utm_source wins; ours is not duplicated.
+    expect(withReferralUtm('https://example.com/?utm_source=twitter')).toBe(
+      'https://example.com/?utm_source=twitter&utm_medium=referral&utm_campaign=product_page',
+    )
+    expect(withReferralUtm('https://example.com/doc#section')).toBe(
+      'https://example.com/doc?utm_source=shekargaah&utm_medium=referral&utm_campaign=product_page#section',
+    )
   })
 })
 
