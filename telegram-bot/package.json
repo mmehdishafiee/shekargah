@@ -1,0 +1,27 @@
+{
+  "name": "shekargah-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ربات تلگرام شکارگاه — معرفی محصولات تازه، مرور محصولات و ورود به سایت با تلگرام",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/bot.test.ts",
+    "db:create": "wrangler d1 create shekargah-bot-db",
+    "db:init:local": "wrangler d1 execute shekargah-bot-db --local --file=./schema.sql",
+    "db:init:remote": "wrangler d1 execute shekargah-bot-db --remote --file=./schema.sql",
+    "set-webhook": "node scripts/set-webhook.mjs",
+    "delete-webhook": "node scripts/set-webhook.mjs --delete",
+    "check": "node scripts/check-bot.mjs"
+  },
+  "dependencies": {
+    "grammy": "^1.46.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}

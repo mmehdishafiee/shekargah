@@ -27,8 +27,10 @@ Shekargah has no server of its own: the browser talks directly to Supabase with 
 | Only admins manage categories, approve/reject/unpublish, resolve reports | policies using `is_admin()` + RPC checks |
 | Roles cannot be changed from the client | no UPDATE grant on `profiles.role` |
 | Website URLs must be `http(s)` | CHECK constraint (blocks `javascript:` links) |
-| Uploads: own folder only, PNG/JPEG/WebP only, 1 MB logos / 512 KB avatars | storage policies + bucket limits |
+| Uploads: own folder only, PNG/JPEG/WebP only, 1 MB logos/screenshots / 512 KB avatars | storage policies + bucket limits (`product-logos`, `product-screenshots`, `avatars`) |
 | Logo/avatar paths must point into the owner's folder | CHECK constraints on `logo_path` / `avatar_path` |
+| Screenshot records are read-only for clients | `product_screenshots` RLS + no INSERT/UPDATE grants |
+| Attaching logo/screenshots after upload | `set_product_logo()` / `set_product_screenshots()` SECURITY DEFINER RPCs check maker/admin |
 
 ## Administrator bootstrap
 

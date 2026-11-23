@@ -1,0 +1,17 @@
+{
+  "name": "شکارگاه",
+  "short_name": "شکارگاه",
+  "description": "کشف استارتاپ‌ها، اپلیکیشن‌ها، پروژه‌های متن‌باز و ابزارهای تازه‌ی ایرانی",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f6",
+  "theme_color": "#f5f5f6",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -5,11 +5,18 @@ interface MenuProps {
   trigger: ReactNode
   children: (close: () => void) => ReactNode
   triggerClassName?: string
+  /** Which edge the panel is anchored to. */
+  align?: 'start' | 'end'
+  /** Open on pointer hover instead of requiring a click (used by the header). */
+  hover?: boolean
+  /** Replaces the default panel sizing, so callers can build wide panels. */
+  panelClassName?: string
 }
 
 /** Small disclosure menu: closes on outside click, Escape and item selection. */
-export function Menu({ label, trigger, children, triggerClassName = '' }: MenuProps) {
+export function Menu({ label, trigger, children, triggerClassName = '', align = 'end', hover = false, panelClassName }: MenuProps) {
   const [open, setOpen] = useState(false)
+  const closeTimer = useRef<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
 
@@ -29,8 +36,33 @@ export function Menu({ label, trigger, children, triggerClassName = '' }: MenuPr
     }
   }, [open])
 
+  const cancelClose = () => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+  const scheduleClose = () => {
+    if (!hover) return
+    cancelClose()
+    // A short delay keeps the menu usable while the pointer travels to it.
+    closeTimer.current = window.setTimeout(() => setOpen(false), 120)
+  }
+
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className="relative"
+      onMouseEnter={() => {
+        if (!hover) return
+        cancelClose()
+        setOpen(true)
+      }}
+      onMouseLeave={scheduleClose}
+      onFocus={() => {
+        if (hover) setOpen(true)
+      }}
+    >
       <button
         type="button"
         aria-label={label}
@@ -44,7 +76,9 @@ export function Menu({ label, trigger, children, triggerClassName = '' }: MenuPr
       {open && (
         <div
           id={menuId}
-          className="absolute end-0 top-full z-40 mt-2 min-w-52 rounded-control border border-line bg-surface/95 p-1.5 shadow-pop backdrop-blur-md"
+          className={`absolute top-full z-40 mt-2 rounded-control border border-line bg-surface shadow-pop ${
+            panelClassName ?? 'min-w-52 p-1.5'
+          } ${align === 'start' ? 'start-0' : 'end-0'}`}
         >
           {children(() => setOpen(false))}
         </div>

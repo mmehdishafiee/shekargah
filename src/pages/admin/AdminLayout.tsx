@@ -3,10 +3,17 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 const TABS = [
   { to: '/admin', label: 'در انتظار بررسی', end: true },
+  { to: '/admin/inbox', label: 'صندوق ورودی' },
   { to: '/admin/published', label: 'منتشرشده' },
   { to: '/admin/rejected', label: 'ردشده' },
   { to: '/admin/reports', label: 'گزارش‌ها' },
   { to: '/admin/categories', label: 'دسته‌بندی‌ها' },
+  { to: '/admin/users', label: 'کاربران' },
+  { to: '/admin/banned-words', label: 'عبارت‌های ممنوعه' },
+  { to: '/admin/newsletter', label: 'خبرنامه' },
+  { to: '/admin/companies', label: 'شرکت‌ها' },
+  { to: '/admin/blog', label: 'وبلاگ' },
+  { to: '/admin/seo', label: 'سئو' },
 ]
 
 export function AdminLayout() {

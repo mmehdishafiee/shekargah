@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { tehranDateLabel } from '@/lib/engagement'
 import { createDemoApi } from './demoApi'
 import { DEMO_ADMIN_EMAIL, DEMO_USER_EMAIL, createDemoState } from './demoSeed'
 import type { ShekargahApi } from './types'
@@ -13,6 +14,8 @@ const input = {
   categoryId: 'c-01',
   tags: [] as string[],
   logo: null,
+  screenshots: [] as File[],
+  credit: { role: 'maker' as const },
 }
 
 beforeEach(() => {
@@ -96,8 +99,21 @@ describe('demo backend mirrors the database rules', () => {
     expect((await api.listComments(first!.id)).some((c) => c.id === comment!.id)).toBe(false)
   })
 
-  it('filters feed by tags and maps tags onto products', async () => {
-    const feed = await api.listProducts({ sort: 'newest', tags: ['open-source'], page: 0 })
+  it('lists a member’s own comments and reviews with their product', async () => {
+    const comments = await api.listProfileComments('u-sara')
+    expect(comments.length).toBeGreaterThan(0)
+    expect(comments.every((c) => c.product && c.product.slug.length > 0)).toBe(true)
+
+    const reviews = await api.listProfileReviews('u-sara')
+    expect(reviews.length).toBeGreaterThan(0)
+    expect(reviews.every((r) => r.rating >= 1 && r.rating <= 5 && r.product)).toBe(true)
+
+    // A member with no activity gets an empty timeline rather than everything.
+    expect(await api.listProfileComments('u-nobody')).toEqual([])
+    expect(await api.listProfileReviews('u-nobody')).toEqual([])
+  })
+
+  it('filters feed by tags and maps tags onto products', async () => {    const feed = await api.listProducts({ sort: 'newest', tags: ['open-source'], page: 0 })
     expect(feed.items.length).toBeGreaterThan(0)
     expect(feed.items.every((p) => p.tags.some((tag) => tag.slug === 'open-source'))).toBe(true)
 
@@ -186,6 +202,17 @@ describe('demo backend mirrors the database rules', () => {
     expect(board.items[0]?.score).toBe(1)
   })
 
+  it('lists the products of a period even when nobody has voted yet', async () => {
+    const newest = (await api.listProducts({ sort: 'newest', page: 0 })).items[0]!
+    const weekly = await api.listLeaderboard({ period: 'weekly', page: 0 })
+    const row = weekly.items.find((item) => item.id === newest.id)
+    expect(row).toBeDefined()
+    expect(row!.score).toBe(0)
+    // A period with nothing published and nothing voted stays empty.
+    const empty = await api.listLeaderboard({ period: 'monthly', page: 0, anchor: '2000-01-01' })
+    expect(empty.items).toHaveLength(0)
+  })
+
   it('ranks trending by recent votes and comments', async () => {
     await api.signIn({ email: DEMO_USER_EMAIL, password: 'x' })
     const [first, second] = (await api.listProducts({ sort: 'popular', page: 0 })).items
@@ -197,9 +224,11 @@ describe('demo backend mirrors the database rules', () => {
   })
 
   it('returns only products published on the requested day', async () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const daily = await api.listDailyProducts({ date: today, page: 0 })
-    expect(daily.items.every((p) => p.publishedAt?.startsWith(today))).toBe(true)
+    const published = (await api.listProducts({ sort: 'newest', page: 0 })).items[0]!
+    const target = tehranDateLabel(new Date(published.publishedAt!))
+    const daily = await api.listDailyProducts({ date: target, page: 0 })
+    expect(daily.items.length).toBeGreaterThan(0)
+    expect(daily.items.every((p) => p.publishedAt && tehranDateLabel(new Date(p.publishedAt)) === target)).toBe(true)
     const other = await api.listDailyProducts({ date: '2000-01-01', page: 0 })
     expect(other.items).toHaveLength(0)
   })

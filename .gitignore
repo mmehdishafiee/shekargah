@@ -28,3 +28,18 @@ Thumbs.db
 # local tool settings
 .claude/
 .zcode/
+
+# wrangler's local cache, including compiled Pages Functions
+.wrangler/
+
+# one-off import/backfill scripts and dumps (may contain credentials)
+tmp-import/
+
+# ad-hoc scratch files (temp dumps, profile copies)
+.tmp-*
+
+# unrelated scratch folders kept out of the app build and checks
+Telegram Sample Bot/
+
+# zipped dist/ prepared for the cPanel upload
+dist-upload-*.zip

@@ -13,9 +13,35 @@ export function tehranDateLabel(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
 }
 
-export function leaderboardWindowStart(period: LeaderboardPeriod, now: Date = new Date()): Date {
-  const start = tehranDayStart(now)
-  return period === 'weekly' ? new Date(start.getTime() - 6 * DAY_MS) : start
+/** How many days each leaderboard period covers, counted back from its anchor day. */
+export const LEADERBOARD_DAYS: Record<LeaderboardPeriod, number> = {
+  daily: 1,
+  weekly: 7,
+  monthly: 30,
+  yearly: 365,
+}
+
+/**
+ * The half-open Tehran-time window a leaderboard period covers. The window
+ * *ends* on `anchor` (default: today in Tehran), so `/leaderboard/daily/2026-10-30`
+ * covers exactly that day and `/leaderboard/weekly/2026-10-30` the seven days
+ * leading up to it.
+ */
+export function leaderboardWindow(
+  period: LeaderboardPeriod,
+  anchor?: string | null,
+  now: Date = new Date(),
+): { startDay: string; endDay: string; startIso: string; endIso: string } {
+  const endDay = anchor ?? tehranDateLabel(now)
+  const endStart = new Date(`${endDay}T00:00:00+03:30`)
+  const start = new Date(endStart.getTime() - (LEADERBOARD_DAYS[period] - 1) * DAY_MS)
+  const end = new Date(endStart.getTime() + DAY_MS)
+  return {
+    startDay: tehranDateLabel(start),
+    endDay,
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  }
 }
 
 /** True when `timestamp` falls on the given Tehran calendar day. */

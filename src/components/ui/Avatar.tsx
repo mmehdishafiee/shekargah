@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { hueFor, initial } from '@/lib/text'
 
 interface AvatarProps {
@@ -25,14 +26,13 @@ export function Avatar({ name, seed, url, size = 32 }: AvatarProps) {
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-full font-semibold"
+      className="pastel-fallback grid shrink-0 place-items-center rounded-full font-semibold"
       style={{
         width: size,
         height: size,
         fontSize: Math.round(size * 0.42),
-        background: `hsl(${hue} 60% 92%)`,
-        color: `hsl(${hue} 45% 30%)`,
-      }}
+        '--h': hue,
+      } as CSSProperties}
     >
       {initial(name)}
     </span>
