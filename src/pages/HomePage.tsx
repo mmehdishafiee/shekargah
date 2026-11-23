@@ -27,6 +27,42 @@ const PERIOD_LINKS: { to: string; label: string }[] = [
   { to: '/leaderboard/yearly', label: 'سالانه' },
 ]
 
+type SidebarSponsor = {
+  id: string
+  name: string
+  tagline: string | null
+  url: string
+  logoUrl: string | null
+  /** Plate behind the logo — some marks only read on their own background. */
+  logoBg?: string
+  logoFit?: 'cover' | 'contain'
+  logoBox?: string
+}
+
+/**
+ * حامیان همیشگی شکارگاه: پروژههایی که خودمان پشت سایت هستیم.
+ */
+const HOUSE_SPONSORS: SidebarSponsor[] = [
+  {
+    id: 'house-leepaak',
+    name: 'لیپک',
+    tagline: 'استودیوی محصولات وب سریع و بومی برای کاربران فارسیزبان',
+    url: 'https://leepaak.ir',
+    logoUrl: '/brand/leepaak.png',
+    logoFit: 'contain',
+    logoBox: 'size-12',
+  },
+  {
+    id: 'house-dastore',
+    name: 'دستور',
+    tagline: 'مرجع فارسی پرامپت، اسکیل و ورکفلو برای کار با هوش مصنوعی',
+    url: 'https://dastore.ir',
+    logoUrl: '/brand/dastore.png',
+    logoFit: 'contain',
+    logoBox: 'size-12',
+  },
+]
+
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
     active ? 'border-ink bg-ink text-canvas' : 'border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink'
@@ -215,7 +251,7 @@ export function HomePage() {
       </section>
 
       <Sidebar
-        sponsors={sponsors.data ?? []}
+        sponsors={[...(sponsors.data ?? []), ...HOUSE_SPONSORS]}
         stats={stats.data ?? null}
         topics={(hotTopics.data ?? []).filter((topic) => topic.productCount > 0).slice(0, 8)}
         makers={(topMakers.data?.pages[0]?.items ?? []).slice(0, 5)}
@@ -350,7 +386,7 @@ function Sidebar({
   topics,
   makers,
 }: {
-  sponsors: { id: string; name: string; tagline: string | null; url: string; logoUrl: string | null }[]
+  sponsors: SidebarSponsor[]
   stats: { products: number; makers: number; votes: number } | null
   topics: { slug: string; name: string; productCount: number }[]
   makers: { id: string; username: string; displayName: string; avatarUrl: string | null; productCount: number; votesTotal: number }[]
@@ -450,7 +486,13 @@ function Sidebar({
         <div className="space-y-3">
           <h2 className="px-1 text-sm font-bold">حامیان شکارگاه</h2>
           {sponsors.map((sponsor) => (
-            <SponsorCard key={sponsor.id} sponsor={sponsor} />
+            <SponsorCard
+              key={sponsor.id}
+              sponsor={sponsor}
+              logoBg={sponsor.logoBg}
+              logoFit={sponsor.logoFit}
+              logoBox={sponsor.logoBox}
+            />
           ))}
         </div>
       )}
