@@ -46,7 +46,24 @@ function allowedOrigins(env: Env): string[] {
     .map(normalize)
     .filter(Boolean);
 
-  return [...new Set([site, "https://shekargah.pages.dev", ...extra].filter(Boolean))];
+  return [
+    ...new Set(
+      [site, "https://www.shekargaah.ir", "https://shekargah.pages.dev", ...extra].filter(Boolean),
+    ),
+  ];
+}
+
+/**
+ * آدرسی که تلگرام باید آپدیت‌ها را به آن بفرستد.
+ *
+ * پیش‌فرض همان آدرس مستقر ورکر است. اگر روزی ربات پشت دامنه‌ی دیگری رفت،
+ * `WORKER_URL` را در wrangler.toml عوض کن. `AUTO_SET_WEBHOOK=0` این
+ * خودتنظیمی را خاموش می‌کند.
+ */
+function publicWorkerUrl(env: Env): string {
+  const raw = (env.WORKER_URL ?? "https://shekargah-bot.lumg.workers.dev").trim();
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return `${withScheme.replace(/\/+$/, "")}/`;
 }
 
 function corsHeaders(env: Env, origin: string | null): Record<string, string> {

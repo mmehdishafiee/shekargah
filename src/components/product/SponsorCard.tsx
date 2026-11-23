@@ -3,8 +3,23 @@ import type { Sponsor } from '@/data/types'
 import { hostnameOf } from '@/lib/text'
 import { cardClass } from '@/components/ui/styles'
 
-/** Sponsor slot shown on the home page. Labelled so it is never mistaken for a product. */
-export function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
+/**
+ * Sponsor slot shown on the home page. Labelled so it is never mistaken for a product.
+ *
+ * `logoBg` / `logoFit` let a sponsor keep the background its mark was designed
+ * for (e.g. a light-silver logo that only reads on a dark plate).
+ */
+export function SponsorCard({
+  sponsor,
+  logoBg = 'bg-sunken',
+  logoFit = 'cover',
+  logoBox = 'size-10',
+}: {
+  sponsor: Sponsor
+  logoBg?: string
+  logoFit?: 'cover' | 'contain'
+  logoBox?: string
+}) {
   return (
     <a
       href={sponsor.url}
@@ -12,9 +27,14 @@ export function SponsorCard({ sponsor }: { sponsor: Sponsor }) {
       rel="noopener noreferrer nofollow sponsored"
       className={`${cardClass} flex items-start gap-3 p-4 transition-colors hover:border-line-strong`}
     >
-      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-sunken text-ink-muted">
+      <span className={`grid ${logoBox} shrink-0 place-items-center overflow-hidden rounded-lg text-ink-muted ${logoBg}`}>
         {sponsor.logoUrl ? (
-          <img src={sponsor.logoUrl} alt="" className="size-full object-cover" loading="lazy" />
+          <img
+            src={sponsor.logoUrl}
+            alt=""
+            className={`size-full ${logoFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+            loading="lazy"
+          />
         ) : (
           <Handshake size={18} strokeWidth={1.75} aria-hidden />
         )}

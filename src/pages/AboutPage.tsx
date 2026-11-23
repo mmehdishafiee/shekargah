@@ -139,7 +139,7 @@ export function AboutPage() {
         <h2 className="text-lg font-bold">این پروژه از کجاست؟</h2>
         <div className="mt-4 space-y-5 text-[15px] leading-7">
           <div className="flex gap-3.5">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-sunken p-1.5">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#1c1424] p-1.5">
               <img src="/brand/mmehdi.png" alt="لوگوی وبلاگ میم" width={200} height={123} className="max-h-full w-full object-contain" />
             </span>
             <p>
