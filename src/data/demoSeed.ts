@@ -24,6 +24,8 @@ export interface DemoUser {
 export interface DemoProduct {
   id: string
   slug: string
+  /** Previous slug kept for redirects; demo data leaves this null. */
+  legacySlug?: string | null
   name: string
   tagline: string
   description: string

@@ -444,6 +444,8 @@ export interface ShekargahApi {
   listTags(): Promise<Tag[]>
   listProducts(query: ProductQuery): Promise<Page<ProductSummary>>
   getProduct(slug: string): Promise<Product | null>
+  /** Resolve an old product address so legacy links can be redirected. */
+  getProductByLegacySlug(legacySlug: string): Promise<Product | null>
   listMakerProducts(makerId: string): Promise<Product[]>
   submitProduct(input: SubmitProductInput): Promise<Product>
   deleteProduct(productId: string): Promise<void>

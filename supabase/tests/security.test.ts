@@ -91,14 +91,34 @@ describe('profiles', () => {
 })
 
 describe('product submissions', () => {
-  it('saves new products as pending, owned by the caller, with a Persian slug', async () => {
-    const product = await submit(alice, 'دفترچه ابری')
-    expect(product).toMatchObject({ status: 'pending', maker_id: alice.id, slug: 'دفترچه-ابری', votes_count: 0 })
+  it('saves new products as pending, owned by the caller, with a domain slug', async () => {
+    const product = await submit(alice, 'با کیا؟', { website_url: 'https://bakiya.ir' })
+    expect(product).toMatchObject({ status: 'pending', maker_id: alice.id, slug: 'bakiya', votes_count: 0 })
   })
 
-  it('generates unique slugs for duplicate names', async () => {
-    const product = await submit(bob, 'دفترچه ابری')
-    expect(product.slug).toMatch(/^دفترچه-ابری-[0-9a-f]{5}$/)
+  it('generates unique slugs for the same domain', async () => {
+    const first = await submit(alice, 'یکی', { website_url: 'https://example.ir' })
+    const second = await submit(bob, 'دو', { website_url: 'https://example.ir' })
+    expect(first.slug).toBe('example')
+    expect(second.slug).toMatch(/^example-[0-9a-f]{5}$/)
+  })
+
+  it('derives the slug from the product domain, not its name', async () => {
+    const cases: [string, string][] = [
+      ['https://bakiya.ir', 'bakiya'],
+      ['https://www.applykite.com', 'applykite'],
+      ['https://cloud.kirovy.ir', 'kirovy'],
+      ['https://github.com/mnabishahzamani-dev/taskyar', 'taskyar'],
+      ['https://knownashesam.github.io/Dizavo/', 'dizavo'],
+      ['https://movieban-alpha.vercel.app', 'movieban-alpha'],
+      ['https://t.me/HesabdaareManBot', 'hesabdaaremanbot'],
+      ['https://cafebazaar.ir/app/com.medical.patienttracking', 'patienttracking'],
+      ['https://apps.apple.com/us/app/plant-doctor-journal-fulik/id6775208704', 'plant-doctor-journal-fulik'],
+    ]
+    for (const [url, expected] of cases) {
+      const { rows } = await db.query<{ slug: string }>(`select public.domain_slug($1) as slug`, [url])
+      expect(rows[0]!.slug, url).toBe(expected)
+    }
   })
 
   it('does not let clients set status, maker or counters', async () => {

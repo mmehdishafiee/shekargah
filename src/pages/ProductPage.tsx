@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import {
   ArrowBigUp,
   CalendarDays,
@@ -18,11 +18,11 @@ import {
 import { useAuth } from '@/auth/useAuth'
 import { useApi } from '@/data/api'
 import { localScreenshots } from '@/data/localScreenshots'
-import { useMySavedIds, useMyVotes, useProduct } from '@/data/queries'
+import { useMySavedIds, useMyVotes, useProduct, useProductByLegacySlug } from '@/data/queries'
 import { viewerKey } from '@/lib/engagement'
 import type { Product } from '@/data/types'
 import { formatDate, formatNumber } from '@/lib/format'
-import { profilePath } from '@/lib/paths'
+import { productPath, profilePath } from '@/lib/paths'
 import { hostnameOf } from '@/lib/text'
 import { productSchema, SITE_URL, useDocumentMeta } from '@/lib/useDocumentMeta'
 import { CommentSection } from '@/components/product/CommentSection'
@@ -47,10 +47,17 @@ import { buttonClass, cardClass } from '@/components/ui/styles'
 export function ProductPage() {
   const { slug = '' } = useParams()
   const product = useProduct(slug)
+  // Old addresses (the Persian name slug) resolve to their product so we can
+  // forward them to the canonical domain-based address.
+  const legacy = useProductByLegacySlug(slug, product.isSuccess && !product.data)
 
   if (product.isPending) return <PageLoader />
   if (product.isError) return <ErrorState error={product.error} onRetry={() => product.refetch()} />
-  if (!product.data) return <ProductNotFound />
+  if (!product.data) {
+    if (legacy.isLoading) return <PageLoader />
+    if (legacy.data) return <Navigate to={productPath(legacy.data.slug)} replace />
+    return <ProductNotFound />
+  }
   return <ProductDetails product={product.data} />
 }
 

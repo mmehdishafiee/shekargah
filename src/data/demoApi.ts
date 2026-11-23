@@ -425,6 +425,12 @@ export function createDemoApi(options: { storage?: DemoStorage | null; latencyMs
       return product && canSee(product) ? toProduct(product) : null
     },
 
+    async getProductByLegacySlug(legacySlug) {
+      await wait()
+      const product = state.products.find((p) => p.legacySlug === legacySlug)
+      return product && canSee(product) ? toProduct(product) : null
+    },
+
     async listMakerProducts(makerId) {
       await wait()
       return state.products

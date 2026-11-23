@@ -826,6 +826,13 @@ export function createSupabaseApi(url: string, key: string, client?: SupabaseCli
       return row ? toProduct(row) : null
     },
 
+    async getProductByLegacySlug(legacySlug) {
+      const row = maybe(
+        await supabase.from('products').select(PRODUCT_SELECT).eq('legacy_slug', legacySlug).maybeSingle<ProductRow>(),
+      )
+      return row ? toProduct(row) : null
+    },
+
     async listMakerProducts(makerId) {
       const rows = check(
         await supabase

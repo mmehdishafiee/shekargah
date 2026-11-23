@@ -69,6 +69,20 @@ export function useProduct(slug: string) {
   return useQuery({ queryKey: keys.product(slug), queryFn: () => api.getProduct(slug) })
 }
 
+/**
+ * When a product page is opened through an old address (the Persian name slug
+ * that predates the domain-based URLs), this resolves it so the page can
+ * redirect to the canonical address. It stays idle unless `enabled`.
+ */
+export function useProductByLegacySlug(legacySlug: string, enabled: boolean) {
+  const api = useApi()
+  return useQuery({
+    queryKey: ['legacy-product', legacySlug],
+    queryFn: () => api.getProductByLegacySlug(legacySlug),
+    enabled: enabled && legacySlug.length > 0,
+  })
+}
+
 export function useDailyProducts(date: string | null) {
   const api = useApi()
   return useInfiniteQuery({
